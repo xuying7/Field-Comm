@@ -145,6 +145,47 @@ class RagPipeline(private val application: Application) {
   }
 
   /**
+   * Direct translation interface - bypasses RAG retrieval and uses existing model
+   * This reuses the same mediaPipeLanguageModel instance to avoid loading the model twice
+   */
+  suspend fun translateDirectly(
+    text: String,
+    targetLanguage: String,
+    callback: AsyncProgressListener<LanguageModelResponse>?,
+  ): String = coroutineScope {
+    Log.d("RagPipeline", "🌐 Starting direct translation: '$text' -> $targetLanguage")
+    
+    // Build translation prompt without RAG context
+    val translationPrompt = buildTranslationPrompt(text, targetLanguage)
+    
+    // Create a minimal retrieval request that bypasses semantic memory search
+    // This reuses the same inference chain but with minimal retrieval
+    try {
+      val minimalRetrievalRequest = RetrievalRequest.create(
+        translationPrompt, 
+        RetrievalConfig.create(0, 0.0f, TaskType.QUESTION_ANSWERING) // 0 results = no retrieval
+      )
+      
+      // Use the same chain infrastructure (this will effectively bypass retrieval due to 0 results)
+      retrievalAndInferenceChain.invoke(minimalRetrievalRequest, callback).await().text
+    } catch (e: Exception) {
+      Log.e("RagPipeline", "❌ Direct translation failed", e)
+      "Translation failed: ${e.message}"
+    }
+  }
+
+  /**
+   * Build a simple translation prompt without RAG context
+   */
+  private fun buildTranslationPrompt(text: String, targetLanguage: String): String {
+    return """Translate the following text to $targetLanguage. Provide only the translation without any additional explanation or commentary.
+
+Text to translate: "$text"
+
+Translation:"""
+  }
+
+  /**
    * Test if the current model supports multimodal capabilities.
    * This helps debug whether the .task file has vision support built-in.
    */

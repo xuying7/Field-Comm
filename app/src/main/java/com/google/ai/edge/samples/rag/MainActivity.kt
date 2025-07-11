@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
       chatViewModel.memorizeChunks("sample_context.txt")
     }
   }
+  
 
   private companion object {
     const val TAG = "MainActivity"
