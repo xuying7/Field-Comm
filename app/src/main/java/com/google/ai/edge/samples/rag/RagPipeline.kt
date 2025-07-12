@@ -97,7 +97,7 @@ class RagPipeline(private val application: Application) {
   private val config =
     ChainConfig.create(
       mediaPipeLanguageModel,
-      PromptBuilder(ROMPT_TEMPLATE),
+      PromptBuilder(PROMPT_TEMPLATE),
       DefaultSemanticTextMemory(
         // Gecko embedding model dimension is 768
         SqliteVectorStore(768),
@@ -291,89 +291,6 @@ Translation:"""
   }
 
   /**
-   * Test if the current model supports multimodal capabilities.
-   * This helps debug whether the .task file has vision support built-in.
-   */
-  private suspend fun testMultimodalSupport(): Boolean {
-    return try {
-      Log.d("RagPipeline", "Testing multimodal support...")
-      
-      // Test 1: Can we create LlmInferenceOptions with setMaxNumImages?
-      val testOptions = try {
-        LlmInferenceOptions.builder()
-          .setModelPath(GEMMA_MODEL_PATH)
-          .setMaxNumImages(1)
-          .setPreferredBackend(Backend.CPU)
-          .setMaxTokens(1024)
-          .build()
-      } catch (e: Exception) {
-        Log.e("RagPipeline", "❌ setMaxNumImages API not available", e)
-        return false
-      }
-      Log.d("RagPipeline", "✅ LlmInferenceOptions with setMaxNumImages created successfully")
-      
-      // Test 2: Can we create LlmInference with these options?
-      // This is where most failures occur - when the .task file doesn't support multimodal
-      val testInference = try {
-        Log.d("RagPipeline", "Testing if .task file supports multimodal loading...")
-        LlmInference.createFromOptions(application, testOptions)
-      } catch (e: Exception) {
-        Log.e("RagPipeline", "❌ Your .task file doesn't support multimodal capabilities", e)
-        Log.w("RagPipeline", "💡 You need a multimodal Gemma 3n .task file with built-in vision encoder")
-        return false
-      }
-      Log.d("RagPipeline", "✅ LlmInference with multimodal options created successfully")
-      
-      // Test 3: Can we create GraphOptions with setEnableVisionModality?
-      val testGraphOptions = try {
-        GraphOptions.builder()
-          .setEnableVisionModality(true)
-          .build()
-      } catch (e: Exception) {
-        Log.e("RagPipeline", "❌ setEnableVisionModality API not available", e)
-        testInference?.close()
-        return false
-      }
-      Log.d("RagPipeline", "✅ GraphOptions with setEnableVisionModality created successfully")
-      
-      // Test 4: Can we create session with vision modality?
-      val testSessionOptions = try {
-        LlmInferenceSessionOptions.builder()
-          .setGraphOptions(testGraphOptions)
-          .build()
-      } catch (e: Exception) {
-        Log.e("RagPipeline", "❌ Failed to create session options with vision", e)
-        testInference?.close()
-        return false
-      }
-      
-      val testSession = try {
-        LlmInferenceSession.createFromOptions(testInference, testSessionOptions)
-      } catch (e: Exception) {
-        Log.e("RagPipeline", "❌ Failed to create session with vision modality", e)
-        testInference?.close()
-        return false
-      }
-      Log.d("RagPipeline", "✅ LlmInferenceSession with vision modality created successfully")
-      
-      // Cleanup test resources
-      try {
-        testSession?.close()
-        testInference?.close()
-      } catch (e: Exception) {
-        Log.w("RagPipeline", "Warning during test cleanup", e)
-      }
-      
-      Log.d("RagPipeline", "🎉 Full multimodal support confirmed!")
-      true
-      
-    } catch (e: Exception) {
-      Log.e("RagPipeline", "❌ Multimodal support test failed: ${e.message}", e)
-      false
-    }
-  }
-
-  /**
    * Gallery-style multimodal generation: 
    * 1) Get RAG context from user prompt
    * 2) Create temporary multimodal inference engine  
@@ -489,7 +406,7 @@ Translation:"""
       
       // Create a multimodal-specific prompt that explicitly mentions the image
       val imageAwarePrompt = "Please analyze the image I've provided and answer this question: $prompt"
-      val enhancedPrompt = PromptBuilder(ROMPT_TEMPLATE).buildPrompt(ragContext, imageAwarePrompt)
+      val enhancedPrompt = PromptBuilder(PROMPT_TEMPLATE).buildPrompt(ragContext, imageAwarePrompt)
       Log.d("RagPipeline", "📏 Enhanced prompt length: ${enhancedPrompt.length} characters")
       Log.d("RagPipeline", "📋 Enhanced prompt preview: ${enhancedPrompt.take(200)}...")
       
@@ -601,18 +518,19 @@ Translation:"""
     // Emergency/Crisis Management prompt template for Field-Comm system
     // Optimized for medical staff, rescue coordinators, and emergency officials
     // {0} = retrieved emergency knowledge context, {1} = user's emergency query
-    private const val ROMPT_TEMPLATE: String =
+    private const val PROMPT_TEMPLATE: String =
       "You are an emergency response assistant for Field-Comm crisis management system. You help medical personnel, rescue coordinators, and emergency officials access critical information quickly without network connectivity.\n\n" +
       "EMERGENCY KNOWLEDGE BASE:\n{0}\n\n" +
       "EMERGENCY QUERY: {1}\n\n" +
       "RESPONSE GUIDELINES:\n" +
+      "- (CRITICAL) Respond ONLY in the same language as the user's query. Do not add translations or any text in other languages.\n" +
+      "- If the query is conversational or not an emergency request, politely state that you are an emergency assistant and can only help with crisis-related questions.\n" +
       "- Provide IMMEDIATE, actionable information\n" +
       "- For medical queries: Give clear, step-by-step first aid instructions\n" +
       "- For locations: Provide specific addresses, coordinates, or landmarks\n" +
       "- For safety alerts: Use clear, urgent language\n" +
       "- Keep responses concise but complete\n" +
       "- Include safety warnings when relevant\n" +
-      "- If information is incomplete, clearly state what additional resources may be needed\n\n" +
-      "- (MUST) You should response in the language of the user's query. Don't answer in other languages."
+      "- If information is incomplete, clearly state what additional resources may be needed\n\n"
   }
 }

@@ -183,14 +183,6 @@ fun FieldCommAppBar(
     )
 }
 
-
-
-
-
-
-
-
-
 @Composable
 fun SendMessageView(
     viewModel: ChatViewModel? = null,
@@ -366,13 +358,14 @@ private fun ImageAttachmentRow(
 }
 
 @Composable
-private fun StatusIndicators(
+fun StatusIndicators(
     isLlmInitializing: Boolean = false,
     isLlmInitialized: Boolean = false,
     llmInitializationError: String? = null,
     isRecording: Boolean = false,
     recordingDuration: Long = 0L,
-    transcriptionInProgress: Boolean = false
+    transcriptionInProgress: Boolean = false,
+    isTranslating: Boolean = false
 ) {
     // Recording indicator with duration
     if (isRecording) {
@@ -380,14 +373,14 @@ private fun StatusIndicators(
         val minutes = seconds / 60
         val remainingSeconds = seconds % 60
         val timeText = if (minutes > 0) {
-            String.format("%d:%02d", minutes, remainingSeconds)
+            String.format("%d:%02d (%d sec)", minutes, remainingSeconds, seconds)
         } else {
-            String.format("%d", remainingSeconds)
+            String.format("%d sec", remainingSeconds)
         }
         
         StatusRow(
             icon = Icons.Filled.FiberManualRecord,
-            text = "Recording... $timeText s",
+            text = "Recording... $timeText",
             color = MaterialTheme.colorScheme.error,
             showProgress = false
         )
@@ -396,6 +389,12 @@ private fun StatusIndicators(
     else if (transcriptionInProgress) {
         StatusRow(
             text = "Converting to text...",
+            color = MaterialTheme.colorScheme.primary,
+            showProgress = true
+        )
+    } else if (isTranslating) {
+        StatusRow(
+            text = "Translating...",
             color = MaterialTheme.colorScheme.primary,
             showProgress = true
         )
@@ -419,7 +418,7 @@ private fun StatusIndicators(
 }
 
 @Composable
-private fun StatusRow(
+fun StatusRow(
     icon: ImageVector? = null,
     text: String,
     color: androidx.compose.ui.graphics.Color,

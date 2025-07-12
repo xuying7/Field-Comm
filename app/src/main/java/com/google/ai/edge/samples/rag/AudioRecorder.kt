@@ -354,11 +354,6 @@ class AudioRecorder {
     }
     
     /**
-     * Check if currently recording
-     */
-    fun isRecording(): Boolean = isRecording.get()
-    
-    /**
      * Clean up resources
      */
     fun release() {

@@ -234,15 +234,8 @@ class WhisperModel(private val context: Context) {
     /**
      * Check if engine is initialized
      */
-    fun isInitialized(): Boolean {
+    private fun isInitialized(): Boolean {
         return mIsInitialized && whisperEngine != null && whisperEngine?.isInitialized() == true
-    }
-    
-    /**
-     * Check if transcription is in progress
-     */
-    fun isInProgress(): Boolean {
-        return mInProgress.get()
     }
     
     /**

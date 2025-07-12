@@ -36,10 +36,6 @@ class WhisperEngineNative(private val context: Context) : WhisperEngine {
         return transcribeBuffer(nativePtr, samples)
     }
 
-    override fun transcribeFile(wavePath: String): String {
-        return transcribeFile(nativePtr, wavePath)
-    }
-
     private fun loadModel(modelPath: String, isMultilingual: Boolean): Int {
         return loadModel(nativePtr, modelPath, isMultilingual)
     }
@@ -53,5 +49,4 @@ class WhisperEngineNative(private val context: Context) : WhisperEngine {
     private external fun loadModel(nativePtr: Long, modelPath: String, isMultilingual: Boolean): Int
     private external fun freeModel(nativePtr: Long)
     private external fun transcribeBuffer(nativePtr: Long, samples: FloatArray): String
-    private external fun transcribeFile(nativePtr: Long, waveFile: String): String
 } 

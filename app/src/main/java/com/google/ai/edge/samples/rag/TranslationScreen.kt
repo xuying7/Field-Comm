@@ -197,71 +197,18 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
             val isLlmInitializing by chatViewModel.isLlmInitializing
             val isLlmInitialized by chatViewModel.isLlmInitialized
             val llmInitializationError by chatViewModel.llmInitializationError
+            val recordingDuration by chatViewModel.recordingDuration
 
-            
-            // LLM initialization status indicators
-            if (isLlmInitializing && !isLlmInitialized) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Loading AI model...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            }
-            
-            // LLM initialization error indicator
-            if (llmInitializationError != null && !isLlmInitializing) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "AI model failed to load",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-            
-            // Translation progress indicator
-            if (isTranslating) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Translating...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            
+            StatusIndicators(
+                isLlmInitializing = isLlmInitializing,
+                isLlmInitialized = isLlmInitialized,
+                llmInitializationError = llmInitializationError,
+                isRecording = isRecording,
+                recordingDuration = recordingDuration,
+                transcriptionInProgress = transcriptionInProgress,
+                isTranslating = isTranslating
+            )
+
             // Input mode toggle and input area
             Column(
                 modifier = Modifier
@@ -555,56 +502,7 @@ private fun PressAndHoldMicrophoneButton(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Status indicators - show recording duration and transcription progress
-        if (isRecording) {
-            val recordingDuration by chatViewModel.recordingDuration
-            val seconds = recordingDuration / 1000
-            val minutes = seconds / 60
-            val remainingSeconds = seconds % 60
-            val timeText = if (minutes > 0) {
-                String.format("%d:%02d", minutes, remainingSeconds)
-            } else {
-                String.format("%d", remainingSeconds)
-            }
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.FiberManualRecord,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(12.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Recording... $timeText",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-        // Transcription progress indicator
-        else if (transcriptionInProgress) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                androidx.compose.material3.CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Converting to text...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        // Instruction text - only show when AI is ready and not busy
-        else if (!isTranslating && isLlmInitialized) {
+        if (!isTranslating && isLlmInitialized && !isRecording && !transcriptionInProgress) {
             Text(
                 text = "Press and hold to speak",
                 style = MaterialTheme.typography.bodyMedium,

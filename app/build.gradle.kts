@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.google.ai.edge.localagents.rag"
+    namespace = "com.google.ai.edge.samples.rag"
     compileSdk = 34
 
     defaultConfig {
@@ -20,7 +20,24 @@ android {
         }
 
         ndk {
-            abiFilters.add("arm64-v8a")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        
+        ndkVersion = "25.1.8937393"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags += listOf("-std=c++17", "-frtti", "-fexceptions")
+                arguments += listOf(
+                    "-DANDROID_STL=c++_shared"
+                )
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("cpp/CMakeLists.txt")
         }
     }
 
@@ -75,6 +92,10 @@ dependencies {
     implementation("com.google.mediapipe:tasks-text:latest.release")
     implementation("com.google.ai.edge.localagents:localagents-rag:0.1.1")
 
+    // TensorFlow Lite dependencies
+    implementation("org.tensorflow:tensorflow-lite:2.13.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.14.0")
 
     // Compose Material icons (filled, outlined, etc.)
     implementation("androidx.compose.material:material-icons-extended")

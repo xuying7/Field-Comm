@@ -1,38 +1,100 @@
 <chunk_splitter>
-I like going to the movies
+If bleeding is severe, elevate the limb and apply direct pressure with a clean cloth.
 <chunk_splitter>
-I don't like strawberries
+For minor burns, cool the area under running water for at least ten minutes.
 <chunk_splitter>
-I am afraid of heights
+Always check the victim's airway, breathing, and circulation in that order.
 <chunk_splitter>
-I went skydiving once
+Splint a suspected fracture exactly as you find it; do not try to realign the bone.
 <chunk_splitter>
-Skydiving was not as scary as I thought
+Use the recovery position when a patient is unconscious but breathing normally.
 <chunk_splitter>
-I like driving and learning about cars
+Iran observes Friday as the weekly day of rest; many shops close at noon on Thursday.
 <chunk_splitter>
-I studied philosophy in college
+Remove your shoes before entering most Persian homes and some mosques.
 <chunk_splitter>
-I work in marketing
+In Iran, offering tea is a common gesture of hospitality—decline politely at least once.
 <chunk_splitter>
-I am 32 years old
+Summer temperatures in the Persian Gulf regularly exceed 45 °C; plan outdoor work at dawn or dusk.
 <chunk_splitter>
-I like traveling
+Ramadan fasting hours vary by latitude; expect cafés to be closed until sunset.
 <chunk_splitter>
-I have traveled to 18 different countries so far
+Flash floods can occur within minutes in the Zagros Mountains after heavy rain.
 <chunk_splitter>
-I like rock climbing and I am now learning how to lead.
+Store at least three liters of drinking water per person per day during an emergency.
 <chunk_splitter>
-I once broke my ankle while climbing.
+To purify water, add 5 mL of household bleach (5 %) to 25 L of clear water, stir, and wait 30 minutes.
 <chunk_splitter>
-I like bouldering, and I'm scared of trad climbing.
+Solar disinfection (SODIS) needs six hours of full sunlight in clear PET bottles.
 <chunk_splitter>
-I like reading
+Build a simple rocket stove from three bricks to boil water efficiently when fuel is scarce.
 <chunk_splitter>
-Lately I don't have as much time to read as I would like.
+If you smell gas after an earthquake, open windows and avoid switches or open flames.
 <chunk_splitter>
-Basketball is a great sport.
+Carry a whistle; three short blasts is the universal distress signal.
 <chunk_splitter>
-Fly me to the moon is one of my favourite songs.
+For heat-stroke, move the patient to shade, remove excess clothing, and cool rapidly with wet cloths.
 <chunk_splitter>
-The Celtics are my favourite team.
+Camel spiders are harmless to humans; most desert bites actually come from scorpions at night.
+<chunk_splitter>
+Use a triangular bandage as a sling to immobilize an injured arm.
+<chunk_splitter>
+Date palms are a staple crop in Khuzestan; fallen fronds can be woven into makeshift mats or shades.
+<chunk_splitter>
+In conservative rural areas, avoid handshakes with the opposite sex unless they initiate.
+<chunk_splitter>
+Earthquake aftershocks may continue for days; inspect cracks in concrete roofs before re-entering.
+<chunk_splitter>
+Chlorine tablets lose potency above 30 °C—store them in a cool, dry pouch.
+<chunk_splitter>
+If no clean cloth is available, apply pressure to a wound with the palm of your gloved hand.
+<chunk_splitter>
+Check for pulse and breathing before starting chest compressions; begin CPR if absent.
+<chunk_splitter>
+Use a tourniquet only when direct pressure fails to control life-threatening limb bleeding.
+<chunk_splitter>
+For suspected spinal injury, stabilize the head with rolled towels on each side.
+<chunk_splitter>
+A mixture of 3 teaspoons of oral rehydration salts in 1 liter of clean water treats dehydration.
+<chunk_splitter>
+Aftershocks can be as strong as the initial quake; stay in open areas at least 30 minutes.
+<chunk_splitter>
+Mark cleared buildings with a green triangle and unsafe ones with a red X for quick scouting.
+<chunk_splitter>
+If your phone battery is below 15 %, switch Field-Comm to low-power mesh mode.
+<chunk_splitter>
+Most village clinics stock tetracycline ointment; apply a thin layer on minor cuts twice daily.
+<chunk_splitter>
+Avoid pointing the soles of your feet toward people or sacred objects in Iranian culture.
+<chunk_splitter>
+Nighttime desert temperatures can drop below 10 °C; pack a light thermal blanket.
+<chunk_splitter>
+Signal helicopters with three long flashes from a flashlight or mirror.
+<chunk_splitter>
+Boil water for a full rolling minute at any elevation below 2 000 m.
+<chunk_splitter>
+If bottled gas is leaking, move the cylinder outside and upwind before in-place repair.
+<chunk_splitter>
+In rural Fars Province, mosques often double as temporary shelters after quakes.
+<chunk_splitter>
+Set the broadcast radius to “200 m” to cover a typical city block without wasting battery.
+<chunk_splitter>
+Scorpion stings: wash the site, apply a cold pack, and transport for antivenom if swelling spreads.
+<chunk_splitter>
+Use rubble dust masks or a damp cloth to reduce inhalation of silica particles.
+<chunk_splitter>
+When handing supplies, use the right hand or both hands as a sign of respect.
+<chunk_splitter>
+If no stretcher is available, create one with two poles and a blanket threaded between.
+<chunk_splitter>
+Hide UI advanced settings behind a long-press to keep the main screen uncluttered for stress use.
+<chunk_splitter>
+Evacuate downhill during landslides; lateral movement is too slow on loose soil.
+<chunk_splitter>
+For chlorine tablets: one 4 mg tablet treats 1 liter of cloudy water; double dose if water is muddy.
+<chunk_splitter>
+Route all outgoing messages through the strongest peer node to extend mesh range.
+<chunk_splitter>
+If the patient is shivering after immersion, remove wet clothes and cover with dry layers immediately.
+<chunk_splitter>
+A whistle blast every 10 seconds helps rescuers triangulate your position in collapsed buildings.

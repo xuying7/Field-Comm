@@ -10,7 +10,5 @@ interface WhisperEngine {
     
     fun deinitialize()
     
-    fun transcribeFile(wavePath: String): String
-    
     fun transcribeBuffer(samples: FloatArray): String
 } 
