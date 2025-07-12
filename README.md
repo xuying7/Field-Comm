@@ -211,7 +211,7 @@ adb push whisper-small.tflite /data/local/tmp/whisper-small.tflite
 adb push gemma-3n-E4B-it-int4.task /data/local/tmp/gemma-3n-E4B-it-int4.task
 
 # Optional: Gecko embedding model for local embeddings
-adb push gecko-embedding-model.tflite /data/local/tmp/gecko-embedding-model.tflite
+adb push gecko.tflite /data/local/tmp/gecko.tflite
 ```
 
 ### Model Sources
