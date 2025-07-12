@@ -3,7 +3,7 @@
 A comprehensive Android application demonstrating **Retrieval-Augmented Generation (RAG)** with multimodal AI capabilities, featuring speech-to-text, text generation, translation, and image understanding - all running locally on-device.
 
 
-**.cpp code for integrate whisper.tflite on android are from vilassn/whisper_android! Amazing code!**
+**.cpp code for integrating whisper.tflite on android is from vilassn/whisper_android! Amazing code!**
 https://github.com/vilassn/whisper_android (MIT License)
 
 **TODO: REPLACE THE EMBEDDER TO MULTILINGUAL EMBEDDER**
