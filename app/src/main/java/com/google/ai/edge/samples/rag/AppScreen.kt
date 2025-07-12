@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -116,13 +117,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material.icons.filled.FiberManualRecord
 import android.util.Log
+import androidx.compose.runtime.DisposableEffect
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 
 
 @Composable
 fun AppNavigation(chatViewModel: ChatViewModel) {
     val navController = rememberNavController()
     
-    NavHost(navController = navController, startDestination = "chatbot") {
+    NavHost(navController = navController, startDestination = "main") {
+        composable("main") {
+            MainScreen(navController = navController)
+        }
         composable("chatbot") {
             ChatScreen(
                 viewModel = chatViewModel,
@@ -134,6 +141,131 @@ fun AppNavigation(chatViewModel: ChatViewModel) {
                 navController = navController,
                 chatViewModel = chatViewModel
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(navController: NavController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        "Field-Comm", 
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.onPrimary,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.onPrimary
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Push buttons up from center
+            Spacer(modifier = Modifier.weight(1f))
+            
+            // Translation Mode Button
+            ModeButton(
+                title = "Translation Mode",
+                description = "Translate spoken words between languages in real-time. ",
+                icon = Icons.Filled.Translate,
+                onClick = { navController.navigate("translation") }
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Chatbot Mode Button  
+            ModeButton(
+                title = "Chatbot Mode",
+                description = "Chat with AI assistant to gain information using voice, image or text. ",
+                icon = Icons.Filled.Chat,
+                onClick = { navController.navigate("chatbot") }
+            )
+            
+            // More space at bottom to push buttons up
+            Spacer(modifier = Modifier.weight(1.5f))
+        }
+    }
+}
+
+@Composable
+private fun ModeButton(
+    title: String,
+    description: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            1.dp, 
+            Color.Black.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icon
+            Surface(
+                modifier = Modifier.size(60.dp),
+                shape = CircleShape,
+                color = Color.Black
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    tint = Color.White
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // Text content
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Black.copy(alpha = 0.7f),
+                    lineHeight = 18.sp
+                )
+            }
         }
     }
 }
@@ -365,12 +497,66 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
     var isTranslating by remember { mutableStateOf(false) }
     var isTextInputMode by remember { mutableStateOf(false) } // New: Toggle between voice and text input
     var inputText by remember { mutableStateOf("") } // New: Text input for manual translation
-    val languages = listOf("English", "Spanish", "French", "German", "Chinese", "Japanese", "Korean", "Polish", "Portuguese", "Russian", "Italian")
+    val languages = listOf("English", "Chinese", "Arabic", "Farsi", "Kurdish", "Turkish", "Urdu")
     val context = LocalContext.current
 
     // Reuse existing ChatViewModel to avoid loading model twice
     // This ensures we only have one model instance in memory
     val coroutineScope = rememberCoroutineScope()
+    
+    // TTS (Text-to-Speech) setup
+    var textToSpeech by remember { mutableStateOf<TextToSpeech?>(null) }
+    var isTtsReady by remember { mutableStateOf(false) }
+    
+    // Initialize TTS
+    DisposableEffect(Unit) {
+        textToSpeech = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                isTtsReady = true
+                Log.d("TranslationScreen", "🔊 TTS initialized successfully")
+            } else {
+                Log.e("TranslationScreen", "❌ TTS initialization failed")
+            }
+        }
+        
+        onDispose {
+            textToSpeech?.stop()
+            textToSpeech?.shutdown()
+            Log.d("TranslationScreen", "🔊 TTS disposed")
+        }
+    }
+    
+    // Function to speak text
+    fun speakText(text: String, language: String) {
+        if (!isTtsReady || textToSpeech == null) {
+            Log.w("TranslationScreen", "⚠️ TTS not ready")
+            return
+        }
+        
+        // Set language for TTS
+        val locale = when (language.lowercase()) {
+            "english" -> Locale.ENGLISH
+            "chinese" -> Locale("zh", "CN") // Mandarin Chinese (Simplified)
+            "arabic" -> Locale("ar")
+            "farsi" -> Locale("fa") // Persian
+            "kurdish" -> Locale("ku")
+            "turkish" -> Locale("tr")
+            "urdu" -> Locale("ur")
+            // Additional languages for broader support
+         
+         
+            else -> Locale.ENGLISH
+        }
+        
+        val result = textToSpeech?.setLanguage(locale)
+        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+            Log.w("TranslationScreen", "⚠️ Language $language not supported, using English")
+            textToSpeech?.setLanguage(Locale.ENGLISH)
+        }
+        
+        textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        Log.d("TranslationScreen", "🔊 Speaking: $text")
+    }
     
     // Audio permission launcher
     val audioPermissionLauncher = rememberLauncherForActivityResult(
@@ -413,12 +599,14 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
                 }
             )
             
-            // Translation result display - Enhanced with larger, more prominent text
+            // Translation result display - Enhanced with larger, more prominent text and speaker
             if (translatedText.isNotBlank() || isTranslating) {
                 TranslationResultCard(
                     translatedText = translatedText,
                     isTranslating = isTranslating,
-                    selectedLanguage = selectedLanguage // Pass language for context
+                    selectedLanguage = selectedLanguage,
+                    onSpeakText = { speakText(translatedText, selectedLanguage) },
+                    isTtsReady = isTtsReady
                 )
             }
             
@@ -521,7 +709,13 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
                                     coroutineScope = coroutineScope,
                                     onTranslating = { isTranslating = true; translatedText = "" },
                                     onProgress = { translatedText = it },
-                                    onComplete = { isTranslating = false }
+                                    onComplete = { 
+                                        isTranslating = false
+                                        // Auto-speak translation when complete
+                                        if (translatedText.isNotBlank() && isTtsReady) {
+                                            speakText(translatedText, selectedLanguage)
+                                        }
+                                    }
                                 )
                             }
                         },
@@ -551,7 +745,13 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
                                         coroutineScope = coroutineScope,
                                         onTranslating = { isTranslating = true; translatedText = "" },
                                         onProgress = { translatedText = it },
-                                        onComplete = { isTranslating = false }
+                                        onComplete = { 
+                                            isTranslating = false
+                                            // Auto-speak translation when complete
+                                            if (translatedText.isNotBlank() && isTtsReady) {
+                                                speakText(translatedText, selectedLanguage)
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -587,7 +787,9 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
 private fun TranslationResultCard(
     translatedText: String,
     isTranslating: Boolean,
-    selectedLanguage: String
+    selectedLanguage: String,
+    onSpeakText: (() -> Unit)? = null,
+    isTtsReady: Boolean
 ) {
     Card(
         modifier = Modifier
@@ -601,12 +803,35 @@ private fun TranslationResultCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "Translation to $selectedLanguage:",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            // Header with language and speaker icon
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Translation to $selectedLanguage:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                // Speaker icon - only show when TTS is ready and text is available
+                if (isTtsReady && translatedText.isNotBlank() && !isTranslating) {
+                    IconButton(
+                        onClick = { onSpeakText?.invoke() },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.VolumeUp,
+                            contentDescription = "Speak translation",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
             
             if (isTranslating) {
                 Row(
@@ -1240,15 +1465,20 @@ fun MessageView(messageData: MessageData) {
                 .padding(horizontal = 6.dp)
         ) {
             if (fromModel) {
-                MarkdownText(
-                    markdown = messageData.message,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 24.sp
+                if (messageData.isLoading) {
+                    // Show loading indicator for model responses
+                    ModelLoadingIndicator()
+                } else {
+                    MarkdownText(
+                        markdown = messageData.message,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 24.sp
+                        )
                     )
-                )
+                }
             } else {
                 Column(
                     modifier = Modifier.widthIn(max = 280.dp),
@@ -1328,6 +1558,42 @@ private fun ActionItem(
         }
 
         Text(text, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+@Composable
+fun ModelLoadingIndicator() {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(
+            topStart = 20.dp,
+            topEnd = 20.dp,
+            bottomEnd = 4.dp,
+            bottomStart = 20.dp
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        ),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "AI is thinking...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
