@@ -1,4 +1,4 @@
-# Android RAG Sample - AI-Powered Field Communication App
+# AI-Powered Field Communication App
 
 A comprehensive Android application demonstrating **Retrieval-Augmented Generation (RAG)** with multimodal AI capabilities, featuring speech-to-text, text generation, translation, and image understanding - all running locally on-device.
 
