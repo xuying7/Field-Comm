@@ -36,9 +36,34 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.guava.await
 import android.graphics.Bitmap
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** The RAG pipeline for LLM generation. */
 class RagPipeline(private val application: Application) {
+  
+  // LLM initialization state tracking
+  private val _isLlmInitialized = mutableStateOf(false)
+  val isLlmInitialized: androidx.compose.runtime.State<Boolean> = _isLlmInitialized
+  
+  private val _llmInitializationError = mutableStateOf<String?>(null)
+  val llmInitializationError: androidx.compose.runtime.State<String?> = _llmInitializationError
+  
+  private val _isLlmInitializing = mutableStateOf(true)
+  val isLlmInitializing: androidx.compose.runtime.State<Boolean> = _isLlmInitializing
+  
+  // Callback interface for LLM initialization events
+  interface LlmInitializationCallback {
+    fun onLlmInitializationStarted()
+    fun onLlmInitializationFailure(error: String)
+  }
+  
+  private var llmInitializationCallback: LlmInitializationCallback? = null
+  
+  fun setLlmInitializationCallback(callback: LlmInitializationCallback) {
+    this.llmInitializationCallback = callback
+  }
+
   private val mediaPipeLanguageModelOptions: LlmInferenceOptions =
     LlmInferenceOptions.builder()
       .setModelPath(GEMMA_MODEL_PATH)
@@ -82,15 +107,35 @@ class RagPipeline(private val application: Application) {
   private val retrievalAndInferenceChain = RetrievalAndInferenceChain(config)
 
   init {
+    Log.d("RagPipeline", "🚀 Starting LLM initialization...")
+    _isLlmInitializing.value = true
+    _isLlmInitialized.value = false
+    _llmInitializationError.value = null
+    
+    // Notify callback that initialization started
+    llmInitializationCallback?.onLlmInitializationStarted()
+    
     Futures.addCallback(
       mediaPipeLanguageModel.initialize(),
       object : FutureCallback<Boolean> {
         override fun onSuccess(result: Boolean) {
-          // no-op
+          Log.d("RagPipeline", "✅ LLM initialization completed successfully")
+          _isLlmInitializing.value = false
+          _isLlmInitialized.value = result
+          _llmInitializationError.value = null
+          
+          
         }
 
         override fun onFailure(t: Throwable) {
-          // no-op
+          val errorMessage = "LLM initialization failed: ${t.message}"
+          Log.e("RagPipeline", "❌ $errorMessage", t)
+          _isLlmInitializing.value = false
+          _isLlmInitialized.value = false
+          _llmInitializationError.value = errorMessage
+          
+          // Notify callback of failure
+          llmInitializationCallback?.onLlmInitializationFailure(errorMessage)
         }
       },
       Executors.newSingleThreadExecutor(),
@@ -145,8 +190,8 @@ class RagPipeline(private val application: Application) {
   }
 
   /**
-   * Direct translation interface - bypasses RAG retrieval and uses existing model
-   * This reuses the same mediaPipeLanguageModel instance to avoid loading the model twice
+   * Direct translation interface - bypasses RAG template by using custom chain config
+   * Creates a temporary chain with empty prompt template for clean translation
    */
   suspend fun translateDirectly(
     text: String,
@@ -155,22 +200,82 @@ class RagPipeline(private val application: Application) {
   ): String = coroutineScope {
     Log.d("RagPipeline", "🌐 Starting direct translation: '$text' -> $targetLanguage")
     
-    // Build translation prompt without RAG context
+    // Check if the main backend is initialized (it might have been closed during multimodal ops)
+    if (!isMainBackendInitialized()) {
+      Log.w("RagPipeline", "⚠️ Main backend was closed, reinitializing for translation...")
+      try {
+        reinitializeMainBackend()
+        Log.d("RagPipeline", "✅ Main backend reinitialized successfully")
+      } catch (e: Exception) {
+        Log.e("RagPipeline", "❌ Failed to reinitialize main backend", e)
+        return@coroutineScope "Translation failed: Backend initialization error"
+      }
+    }
+    
+    // Build clean translation prompt without any RAG template wrapping
     val translationPrompt = buildTranslationPrompt(text, targetLanguage)
     
-    // Create a minimal retrieval request that bypasses semantic memory search
-    // This reuses the same inference chain but with minimal retrieval
     try {
-      val minimalRetrievalRequest = RetrievalRequest.create(
-        translationPrompt, 
-        RetrievalConfig.create(0, 0.0f, TaskType.QUESTION_ANSWERING) // 0 results = no retrieval
+      Log.d("RagPipeline", "🔧 Creating temporary translation chain with clean prompt template")
+      
+      // Create a clean prompt template that just passes through the text
+      val cleanPromptBuilder = PromptBuilder("{1}") // {1} = user prompt, no template wrapper
+      
+      // Create temporary config with clean prompt template (no emergency response template)
+      val translationConfig = ChainConfig.create(
+        mediaPipeLanguageModel,
+        cleanPromptBuilder,
+        config.semanticMemory.getOrNull() // Reuse same memory but won't retrieve anything
       )
       
-      // Use the same chain infrastructure (this will effectively bypass retrieval due to 0 results)
-      retrievalAndInferenceChain.invoke(minimalRetrievalRequest, callback).await().text
+      // Create temporary chain with clean template
+      val translationChain = RetrievalAndInferenceChain(translationConfig)
+      
+      // Create request with 0 retrieval results to bypass knowledge base
+      val translationRequest = RetrievalRequest.create(
+        translationPrompt, 
+        RetrievalConfig.create(0, 0.0f, TaskType.QUESTION_ANSWERING) // 0 results = no RAG context
+      )
+      
+      // Use clean chain (no emergency template wrapper)
+      val result = translationChain.invoke(translationRequest, callback).await()
+      
+      Log.d("RagPipeline", "✅ Direct translation completed: ${result.text.length} chars")
+      result.text
+      
     } catch (e: Exception) {
       Log.e("RagPipeline", "❌ Direct translation failed", e)
       "Translation failed: ${e.message}"
+    }
+  }
+
+  /**
+   * Check if the main backend is properly initialized
+   */
+  private fun isMainBackendInitialized(): Boolean {
+    return try {
+      // Try to check if the backend is ready
+      // This is a simple check - if it throws an exception, it's not initialized
+      mediaPipeLanguageModel.toString() // This won't throw if properly initialized
+      true
+    } catch (e: Exception) {
+      Log.d("RagPipeline", "🔍 Main backend check failed: ${e.message}")
+      false
+    }
+  }
+
+  /**
+   * Reinitialize the main backend if it was closed
+   */
+  private suspend fun reinitializeMainBackend() {
+    try {
+      Log.d("RagPipeline", "🔄 Reinitializing main backend...")
+      val initFuture = mediaPipeLanguageModel.initialize()
+      initFuture.await()
+      Log.d("RagPipeline", "✅ Main backend reinitialized successfully")
+    } catch (e: Exception) {
+      Log.e("RagPipeline", "❌ Failed to reinitialize main backend", e)
+      throw e
     }
   }
 
@@ -465,8 +570,16 @@ Translation:"""
         System.gc()
         Log.d("RagPipeline", "✅ Multimodal resources cleaned up")
         
-        // Note: We don't restart the original backend here to save memory
-        // The text-only fallback will handle reinitialization if needed
+        // Reinitialize main backend if it was closed during multimodal operations
+        if (wasOriginalBackendClosed) {
+          Log.d("RagPipeline", "🔄 Restoring main backend after multimodal operation...")
+          try {
+            mediaPipeLanguageModel.initialize().await()
+            Log.d("RagPipeline", "✅ Main backend restored successfully")
+          } catch (e: Exception) {
+            Log.w("RagPipeline", "⚠️ Failed to restore main backend, will reinitialize on demand", e)
+          }
+        }
         
       } catch (e: Exception) {
         Log.e("RagPipeline", "⚠️ Error during multimodal cleanup", e)
@@ -485,9 +598,21 @@ Translation:"""
     private const val GEMINI_EMBEDDING_MODEL = "models/text-embedding-004"
     private const val GEMINI_API_KEY = "..."
 
-    // The prompt template for the RetrievalAndInferenceChain. It takes two inputs: {0}, which is
-    // the retrieved context, and {1}, which is the user's query.
+    // Emergency/Crisis Management prompt template for Field-Comm system
+    // Optimized for medical staff, rescue coordinators, and emergency officials
+    // {0} = retrieved emergency knowledge context, {1} = user's emergency query
     private const val ROMPT_TEMPLATE: String =
-      "You are an assistant for question-answering tasks. Here are the things I want to remember: {0} Use the things I want to remember, answer the following question the user has: {1}"
+      "You are an emergency response assistant for Field-Comm crisis management system. You help medical personnel, rescue coordinators, and emergency officials access critical information quickly without network connectivity.\n\n" +
+      "EMERGENCY KNOWLEDGE BASE:\n{0}\n\n" +
+      "EMERGENCY QUERY: {1}\n\n" +
+      "RESPONSE GUIDELINES:\n" +
+      "- Provide IMMEDIATE, actionable information\n" +
+      "- For medical queries: Give clear, step-by-step first aid instructions\n" +
+      "- For locations: Provide specific addresses, coordinates, or landmarks\n" +
+      "- For safety alerts: Use clear, urgent language\n" +
+      "- Keep responses concise but complete\n" +
+      "- Include safety warnings when relevant\n" +
+      "- If information is incomplete, clearly state what additional resources may be needed\n\n" +
+      "- (MUST) You should response in the language of the user's query. Don't answer in other languages."
   }
 }

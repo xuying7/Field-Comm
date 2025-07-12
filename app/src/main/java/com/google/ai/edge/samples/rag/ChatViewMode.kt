@@ -26,9 +26,9 @@ class ChatViewModel constructor(private val application: Application) :
   private val executorService = Executors.newSingleThreadExecutor()
   private val backgroundExecutor: Executor = Executors.newSingleThreadExecutor()
   
-  // Thread-safe accumulator for streaming responses
+  // Text accumulator specifically for multimodal responses (image path)
   @Volatile
-  private var currentStreamingText = ""
+  private var multimodalStreamingText = ""
   
   // Audio recording state
   private val _isRecording = mutableStateOf(false)
@@ -43,8 +43,32 @@ class ChatViewModel constructor(private val application: Application) :
   // Audio initialization state
   private val _audioInitialized = mutableStateOf(false)
   val audioInitialized: androidx.compose.runtime.State<Boolean> = _audioInitialized
+  
+  // LLM initialization state - exposed from RagPipeline
+  val isLlmInitialized: androidx.compose.runtime.State<Boolean> = ragPipeline.isLlmInitialized
+  val isLlmInitializing: androidx.compose.runtime.State<Boolean> = ragPipeline.isLlmInitializing
+  val llmInitializationError: androidx.compose.runtime.State<String?> = ragPipeline.llmInitializationError
 
   init {
+    // Set up LLM initialization callback
+    ragPipeline.setLlmInitializationCallback(object : RagPipeline.LlmInitializationCallback {
+      override fun onLlmInitializationStarted() {
+        Log.d("ChatViewModel", "🚀 LLM initialization started")
+        viewModelScope.launch {
+          statistics.value = "Initializing AI model..."
+        }
+      }
+      
+      
+      
+      override fun onLlmInitializationFailure(error: String) {
+        Log.e("ChatViewModel", "❌ LLM initialization failed: $error")
+        viewModelScope.launch {
+          statistics.value = "AI model failed to load: $error"
+        }
+      }
+    })
+    
     // Initialize audio components
     viewModelScope.launch {
       withContext(backgroundExecutor.asCoroutineDispatcher()) {
@@ -95,12 +119,9 @@ class ChatViewModel constructor(private val application: Application) :
     // Add the user's message to the UI immediately.
     appendMessage(MessageOwner.User, prompt, imageUris)
 
-    // Add a placeholder message for the model while we wait for the response.
-    appendMessage(MessageOwner.Model, "...")
+    // Add a loading placeholder message for the model while we wait for the response.
+    appendLoadingMessage(MessageOwner.Model)
     
-    // Reset streaming accumulator for new message
-    currentStreamingText = ""
-
     executorService.submit {
       viewModelScope.launch { requestResponseFromModel(prompt, imageUris) }
     }
@@ -109,49 +130,59 @@ class ChatViewModel constructor(private val application: Application) :
   private suspend fun requestResponseFromModel(prompt: String, imageUris: List<Uri>) {
     val fullResponse =
       withContext(backgroundExecutor.asCoroutineDispatcher()) {
-        if (imageUris.isNotEmpty()) {
-          // Decode the first image URI to a Bitmap.
-          val bitmap =
-            application.contentResolver.openInputStream(imageUris.first())?.use { stream ->
-              BitmapFactory.decodeStream(stream)
-            }
-          if (bitmap != null) {
-            // Use the multimodal path with proper text accumulation
-            ragPipeline.generateResponseWithImage(prompt, bitmap) { response, done ->
-              // FIXED: Accumulate streaming tokens instead of using response.text directly
-              synchronized(this@ChatViewModel) {
-                currentStreamingText += response.text
+        try {
+          if (imageUris.isNotEmpty()) {
+            // Reset accumulator for new multimodal response
+            multimodalStreamingText = ""
+            
+            // Decode the first image URI to a Bitmap.
+            val bitmap =
+              application.contentResolver.openInputStream(imageUris.first())?.use { stream ->
+                BitmapFactory.decodeStream(stream)
               }
-              
-              // Update UI on main thread with accumulated text for proper streaming display
-              viewModelScope.launch {
+            if (bitmap != null) {
+              // Use the multimodal path with text accumulation (multimodal callbacks provide incremental tokens)
+              ragPipeline.generateResponseWithImage(prompt, bitmap) { response, done ->
+                // MULTIMODAL FIX: Accumulate incremental tokens since multimodal callback provides partial tokens
                 synchronized(this@ChatViewModel) {
-                  updateLastMessage(MessageOwner.Model, currentStreamingText)
+                  multimodalStreamingText += response.text
+                }
+                
+                viewModelScope.launch {
+                  // Update UI with accumulated text for proper multimodal streaming display
+                  synchronized(this@ChatViewModel) {
+                    val cleanedText = multimodalStreamingText.trim()
+                    if (cleanedText.isNotEmpty()) {
+                      updateLastMessage(MessageOwner.Model, cleanedText)
+                    }
+                  }
+                }
+              }
+            } else {
+              "Failed to load image."
+            }
+          } else {
+            // Fallback: text-only path (response.text contains full accumulated text)
+            ragPipeline.generateResponse(prompt) { response, done ->
+              // TEXT-ONLY: Use response.text directly since it contains full accumulated text
+              viewModelScope.launch {
+                // Validate response before updating UI
+                val cleanedText = response.text.trim()
+                if (cleanedText.isNotEmpty()) {
+                  updateLastMessage(MessageOwner.Model, cleanedText)
                 }
               }
             }
-          } else {
-            "Failed to load image."
           }
-        } else {
-          // Fallback: text-only path with same accumulation pattern
-          ragPipeline.generateResponse(prompt) { response, done ->
-            // FIXED: Also accumulate text for text-only path for consistency
-            synchronized(this@ChatViewModel) {
-              currentStreamingText += response.text
-            }
-            
-            // Update UI on main thread for proper streaming display
-            viewModelScope.launch {
-              synchronized(this@ChatViewModel) {
-                updateLastMessage(MessageOwner.Model, currentStreamingText)
-              }
-            }
+        } catch (e: Exception) {
+          Log.e("ChatViewModel", "❌ Error generating response", e)
+          viewModelScope.launch {
+            updateLastMessage(MessageOwner.Model, "Sorry, I encountered an error while generating a response.")
           }
+          "Error occurred during response generation."
         }
       }
-    // Don't do final update here - the streaming callback already handles the final text
-    // This prevents double-update that causes text overlap
+    // No need for final update - the streaming callback handles the complete text
   }
 
   /**
@@ -328,10 +359,14 @@ class ChatViewModel constructor(private val application: Application) :
     messages.add(MessageData(role, message, imageUris))
   }
 
+  private fun appendLoadingMessage(role: MessageOwner) {
+    messages.add(MessageData(role, "", emptyList(), isLoading = true))
+  }
+
   private fun updateLastMessage(role: MessageOwner, message: String) {
     if (messages.isNotEmpty() && messages.last().owner == role) {
       val last = messages.last()
-      messages[messages.lastIndex] = last.copy(message = message)
+      messages[messages.lastIndex] = last.copy(message = message, isLoading = false)
     } else {
       appendMessage(role, message)
     }
@@ -363,5 +398,6 @@ enum class MessageOwner {
 data class MessageData(
   val owner: MessageOwner,
   val message: String,
-  val imageUris: List<Uri> = emptyList()
+  val imageUris: List<Uri> = emptyList(),
+  val isLoading: Boolean = false
 )
