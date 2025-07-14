@@ -2,333 +2,301 @@
 
 A comprehensive Android application demonstrating **Retrieval-Augmented Generation (RAG)** with multimodal AI capabilities, featuring speech-to-text, text generation, translation, and image understanding - all running locally on-device.
 
-
-**.cpp code for integrating whisper.tflite on android is from vilassn/whisper_android! Amazing code!**
-https://github.com/vilassn/whisper_android (MIT License)
-
-**TODO: REPLACE THE EMBEDDER TO MULTILINGUAL EMBEDDER**
+**C++ code for integrating whisper.tflite on Android is from [vilassn/whisper_android](https://github.com/vilassn/whisper_android)! Amazing work!** (MIT License)
 
 ## 🚀 Key Features
 
 - **🎙️ Speech-to-Text**: Real-time audio transcription using Whisper
-- **🤖 AI Chat**: Intelligent responses powered by Gemma 3n language model
+- **🤖 AI Chat**: Intelligent responses powered by Gemma 3n language model with image analysis
 - **🌐 Translation**: Multi-language translation with text-to-speech
 - **📸 Multimodal AI**: Image understanding with visual question answering
 - **🔍 RAG Pipeline**: Context-aware responses using semantic search
 - **📱 Fully On-Device**: No internet required, complete privacy
+- **🎨 Modern UI**: Material 3 design 
 
-## 📁 Project Overview
+## 📱 User Interface
 
-This app demonstrates advanced AI capabilities in a practical field communication scenario, perfect for emergency response, international aid, or cross-cultural communication.
+### **Three-Screen Navigation**
 
-### Architecture Components
+#### **1. Main Screen (Entry Point)**
+- **Purpose**: Central hub for mode selection
+- **Features**: Two prominent mode buttons with clear descriptions
+- **Design**: Clean, minimal interface with centered navigation cards
+
+#### **2. Chat Mode (AI Q&A)**
+- **Purpose**: AI-powered chat with multimodal capabilities
+- **Empty State**: Interactive instruction card showing how to use voice, image, and text inputs
+- **Features**: 
+  - Voice input with press-and-hold microphone
+  - Image analysis via camera or gallery
+  - Text input with rich markdown responses
+  - Real-time status indicators
+
+#### **3. Translation Mode**
+- **Purpose**: Real-time translation between 7 languages
+- **Empty State**: Centered instruction card with usage guidelines
+- **Features**:
+  - Voice-to-voice translation
+  - Text-to-text translation
+  - Automatic text-to-speech output
+  - Language selector dropdown
+
+### **User Experience Enhancements**
+
+- **Instruction Cards**: Contextual guidance appears when screens are empty
+- **Centered Empty States**: Instructions are vertically centered for better UX
+- **Visual Feedback**: Real-time indicators for recording, processing, and initialization
+- **Smooth Transitions**: Cards appear/disappear naturally as users interact
+
+## 📁 Project Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Android RAG Application                   │
-├─────────────────────────────────────────────────────────────┤
-│  UI Layer (Jetpack Compose)                                │
-│  ├── ChatScreen (AI Q&A + Image)                           │
-│  └── TranslationScreen (Voice/Text Translation)            │
-├─────────────────────────────────────────────────────────────┤
+┌────────────────────────────────────────────────────────────┐
+│                  Field-Comm Android App                    │
+├────────────────────────────────────────────────────────────┤
+│  UI Layer (Jetpack Compose + Material 3)                   │
+│  ├── MainScreen (Mode Selection)                           │
+│  ├── ChatScreen (AI Q&A + Image Analysis)                  │
+│  ├── TranslationScreen (Voice/Text Translation)            │
+│  └── Instruction Cards (Empty State Guidance)              │
+├────────────────────────────────────────────────────────────┤
 │  Core AI Pipeline (RagPipeline.kt)                         │
 │  ├── RAG Engine (Retrieval + Generation)                   │
-│  ├── Translation Engine                                     │
-│  └── Multimodal Engine                                     │
-├─────────────────────────────────────────────────────────────┤
-│  Audio Pipeline                                             │
+│  ├── Translation Engine (Direct Translation)               │
+│  ├── Multimodal Engine (Text + Vision)                     │
+│  └── Custom Multilingual Embedder                          │
+├────────────────────────────────────────────────────────────┤
+│  Audio Pipeline (Whisper Integration)                      │
 │  ├── AudioRecorder (16kHz capture)                         │
 │  ├── WhisperModel (Speech-to-Text)                         │
 │  └── WhisperEngineNative (C++ JNI)                         │
-├─────────────────────────────────────────────────────────────┤
-│  AI Models & Embeddings                                     │
-│  ├── Gemma 3n (Text + Vision)                             │
+├──────────────────────────────────────────────-─────────────┤
+│  AI Models & Storage                                       │
+│  ├── Gemma 3n (Text + Vision)                              │
 │  ├── Whisper (Speech Recognition)                          │
-│  └── Gecko/USE (Text Embeddings)                           │
-├─────────────────────────────────────────────────────────────┤
-│  Knowledge Base                                             │
-│  ├── SQLite Vector Store                                   │
-│  ├── Semantic Text Memory                                  │
-│  └── Emergency/Field Context                               │
-└─────────────────────────────────────────────────────────────┘
+│  ├── Custom Multilingual Embedder (512D)                   │
+│  └── SQLite Vector Store                                   │
+└────────────────────────────────────────────────────────────┘
 ```
-
-## 🔧 Core Components Explained
-
-### 1. 🎙️ **Whisper - Speech-to-Text Engine**
-
-**What it is:** OpenAI's Whisper model converted to TensorFlow Lite for on-device speech recognition.
-
-**How it works:**
-- Records audio at 16kHz sample rate using `AudioRecorder`
-- Converts audio samples to mel-spectrograms in C++
-- Processes through TensorFlow Lite Whisper model
-- Converts output tokens to readable text using embedded vocabulary
-
-**Key Files:**
-- `WhisperModel.kt` - High-level Kotlin interface
-- `WhisperEngineNative.kt` - JNI wrapper for C++ implementation
-- `app/cpp/` - C++ TensorFlow Lite processing engine
-
-**Model Setup:**
-```bash
-# Place your Whisper model at:
-adb push whisper-small.tflite /data/local/tmp/whisper-small.tflite
-```
-
-### 2. 🤖 **Gemma 3n - Multimodal Language Model**
-
-**What it is:** Google's Gemma 3n model with vision capabilities, optimized for mobile deployment.
-
-**How it works:**
-- **Text Generation**: Processes user queries with RAG context
-- **Image Understanding**: Analyzes images with visual question answering
-- **Translation**: Generates translations between multiple languages
-- **Multimodal Processing**: Combines text and image inputs simultaneously
-
-**Key Features:**
-- **Model**: `gemma-3n-E4B-it-int4.task` (4-bit quantized for mobile)
-- **Backend**: MediaPipe LLM Inference with CPU optimization
-- **Vision**: Gallery API for image processing
-- **Memory Management**: Dynamic backend switching for multimodal operations
-
-**Model Setup:**
-```bash
-# Place your Gemma model at:
-adb push gemma-3n-E4B-it-int4.task /data/local/tmp/gemma-3n-E4B-it-int4.task
-```
-
-### 3. 🌐 **Translation System**
-
-**What it is:** AI-powered translation system supporting 7 languages with text-to-speech output.
-
-**Supported Languages:**
-- English, Chinese, Arabic, Farsi, Kurdish, Turkish, Urdu
-
-**How it works:**
-1. **Input**: Voice (via Whisper) or text typing
-2. **Processing**: Gemma 3n generates translations using specialized prompts
-3. **Output**: Translated text with automatic text-to-speech playback
-
-**Key Features:**
-- **Voice Input**: Press-and-hold microphone for speech input
-- **Text Input**: Manual typing with real-time translation
-- **Audio Output**: Native Android TTS with language-specific voices
-- **Clean Translation**: Bypasses RAG context for accurate translation
-
-### 4. 🎵 **Audio Processing Pipeline**
-
-**What it is:** Complete audio capture and processing system optimized for speech recognition.
-
-**Audio Specifications:**
-- **Sample Rate**: 16kHz (optimal for Whisper)
-- **Format**: Mono, 16-bit PCM
-- **Conversion**: Real-time Short to Float32 conversion
-- **Buffer Management**: Efficient circular buffering
-
-**Processing Flow:**
-```
-🎤 AudioRecord → 📊 PCM Processing → 🔄 Format Conversion → 🎯 Whisper Model → 📝 Text Output
-```
-
-**Key Components:**
-- `AudioRecorder.kt` - Android audio capture
-- `WhisperModel.kt` - Speech-to-text coordinator
-- C++ TFLite Engine - Model inference
-
-### 5. 🔍 **RAG (Retrieval-Augmented Generation) Pipeline**
-
-**What it is:** Advanced AI system that combines knowledge retrieval with text generation for contextually-aware responses.
-
-**How RAG Works:**
-1. **Knowledge Storage**: Emergency/field context stored in SQLite vector database
-2. **Query Processing**: User questions converted to embeddings
-3. **Semantic Search**: Finds relevant context using cosine similarity
-4. **Response Generation**: Combines retrieved context with user query
-5. **AI Response**: Gemma 3n generates contextually-aware answers
-
-**Knowledge Base Content:**
-- Emergency first aid procedures
-- Cultural guidelines for Iran/Middle East
-- Field communication protocols
-- Equipment usage instructions
-- Safety procedures
-
-**RAG Architecture:**
-```
-User Query → Embedding → Vector Search → Context Retrieval → LLM + Context → Response
-```
-
-### 6. 📊 **Text Embedding Models**
-
-**What they are:** Models that convert text into high-dimensional vectors for semantic search.
-
-**Available Options:**
-- **Gecko Embedding Model**: Local TensorFlow Lite model (768 dimensions)
-- **Universal Sentence Encoder**: TensorFlow Lite model (512 dimensions)
-- **Gemini Embedder**: Cloud-based option (requires API key)
-
-**How they work:**
-- Convert text chunks into numerical vectors
-- Enable semantic similarity search
-- Power the RAG retrieval system
-- Support multilingual content
-
-## 🏗️ **Application Architecture**
-
-### UI Layer (Jetpack Compose)
-- **ChatScreen**: AI Q&A with image support
-- **TranslationScreen**: Voice/text translation interface
-- **Material 3 Design**: Modern, accessible UI components
-
-### Core Logic Layer
-- **ChatViewModel**: Orchestrates AI operations
-- **RagPipeline**: Central AI processing engine
-- **Model Management**: Handles multiple AI models efficiently
-
-### Data Layer
-- **SQLite Vector Store**: Semantic search database
-- **Asset Management**: Local knowledge base
-- **Model Loading**: Efficient AI model management
 
 ## 🔧 Setup Instructions
 
-### Prerequisites
+### **Prerequisites**
 ```bash
 # Android SDK 26+ (Android 8.0+)
 # NDK for C++ components
-# 4GB+ RAM recommended for multimodal operations
+# 8GB+ RAM recommended for multimodal operations
+# ADB for model installation
 ```
 
-### Required Model Files
-Place these models on your device using ADB:
+### **Required Model Files**
+
+**⚠️ IMPORTANT**: Models must be placed in `/data/local/tmp/` directory on your Android device using ADB.
+
+**Required Files Summary:**
+- `whisper-small.tflite` (~242 MB) - Speech-to-text model
+- `gemma-3n-E4B-it-int4.task` (~2.3 GB) - Multimodal language model 
+- `vocab.txt` (~996 kB) - Multilingual embedder vocabulary
+- `model_int8.tflite` (~134 MB) - Multilingual embedder model
 
 ```bash
-# Whisper model for speech-to-text
+# 1. Whisper model for speech-to-text
 adb push whisper-small.tflite /data/local/tmp/whisper-small.tflite
 
-# Gemma 3n model for text generation and vision
+# 2. Gemma 3n model for text generation and vision
 adb push gemma-3n-E4B-it-int4.task /data/local/tmp/gemma-3n-E4B-it-int4.task
 
-# Optional: Gecko embedding model for local embeddings
-adb push gecko.tflite /data/local/tmp/gecko.tflite
+# 3. Custom multilingual embedder files (for RAG semantic search)
+adb push vocab.txt /data/local/tmp/vocab.txt
+adb push model_int8.tflite /data/local/tmp/model_int8.tflite
 ```
 
-### Model Sources
-- **Whisper**: [TensorFlow Hub](https://tfhub.dev/openai/whisper/1) or [Hugging Face](https://huggingface.co/openai/whisper-small)
-- **Gemma**: [Kaggle Models](https://www.kaggle.com/models/google/gemma) or [AI Edge](https://ai.google.dev/edge)
-- **Gecko**: [MediaPipe Models](https://developers.google.com/mediapipe/solutions/genai/llm_inference)
+### **Model Download Sources**
 
-### Build and Run
+#### **1. Whisper Model (Speech-to-Text)**
+- **Recommended**: [Hugging Face - Whisper Small](https://huggingface.co/openai/whisper-small)
+- **Alternative**: [TensorFlow Hub - Whisper](https://tfhub.dev/openai/whisper/1)
+- **File needed**: `whisper-small.tflite` (convert from PyTorch to TFLite), or download directly from https://huggingface.co/DocWolle/whisper_tflite_models 
+
+#### **2. Gemma 3n Model (Multimodal LLM)**
+- **Primary**: [Kaggle - Gemma Models](https://www.kaggle.com/models/google/gemma)
+- **Alternative**: [AI Edge - Gemma](https://ai.google.dev/edge/models/gemma)
+- **File needed**: `gemma-3n-E4B-it-int4.task` (4-bit quantized for mobile)
+
+#### **3. Custom Multilingual Embedder (RAG Semantic Search)**
+- **Source**: [Hugging Face - DistilUSE Base Multilingual Cased v2](https://huggingface.co/sentence-transformers/distiluse-base-multilingual-cased-v2/tree/main)
+- **Files needed**: 
+  - `vocab.txt` (996 kB) - DistilBERT vocabulary file
+  - `model_int8.tflite` (convert from `tf_model.h5/model.onnx` to quantized TFLite)
+- **Note**: The TensorFlow model needs to be converted to TFLite format and quantized to int8 for mobile deployment (Or download directly from https://huggingface.co/xuying7/distiluse-base-multilingual-cased-v2-tflite-version/tree/main)
+
+### **Installation Steps**
+
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone <repository-url>
 cd android-rag-sample
 
-# Install dependencies
-./gradlew build
+# 2. Download required models from huggingface. 
 
-# Run on device
-./gradlew installDebug
-```
+# 3. Push models to device using ADB commands above
 
-## 🎯 Usage Examples
-
-### 1. **AI Chat with Context**
-```
-User: "What should I do if someone is bleeding severely?"
-AI: "If bleeding is severe, elevate the limb and apply direct pressure with a clean cloth. If no clean cloth is available, apply pressure to the wound with the palm of your gloved hand..."
+# 4. Sync, Build and install in Android Studio. 
 ```
 
-### 2. **Visual Question Answering**
+## 🎯 Usage Guide
+
+### **Getting Started**
+
+1. **Launch App**: Open Field-Comm app
+2. **Choose Mode**: Select "Translation Mode" or "Chatbot Mode"
+3. **Follow Instructions**: Each mode shows helpful guidance when empty
+4. **Start Interacting**: Use voice, text, or image inputs as indicated
+
+### **Chat Mode Examples**
+
+#### **Voice Query**
 ```
-User: [Shows image of injury] "What type of injury is this?"
-AI: "Based on the image, this appears to be a laceration. You should clean the wound, apply direct pressure to control bleeding, and seek medical attention..."
+User: [Press and hold microphone] "What should I do for a severe cut?"
+AI: "For a severe cut, follow these steps:
+1. Apply direct pressure with a clean cloth
+2. Elevate the injured area above heart level
+3. If bleeding doesn't stop, apply additional pressure
+4. Seek immediate medical attention..."
 ```
 
-### 3. **Voice Translation**
+#### **Image Analysis**
 ```
-User: [Speaks in English] "Hello, how are you?"
+User: [Takes photo of medical equipment] "What is this used for?"
+AI: "This appears to be a tourniquet. It's used to control severe bleeding by stopping blood flow to an injured limb. To use it:
+1. Place 2-3 inches above the wound
+2. Tighten until bleeding stops
+3. Note the time applied
+4. Seek medical help immediately..."
+```
+
+### **Translation Mode Examples**
+
+#### **Voice Translation**
+```
+User: [Press and hold microphone] "Hello, how are you?"
 AI: [Translates to Arabic] "مرحبا، كيف حالك؟"
-[Plays audio pronunciation]
+[Automatically plays audio pronunciation]
 ```
 
-### 4. **Emergency Context**
+#### **Text Translation**
 ```
-User: "How do I purify water?"
-AI: "To purify water, add 5 mL of household bleach (5%) to 25 L of clear water, stir, and wait 30 minutes. Alternatively, use solar disinfection (SODIS) which needs six hours of full sunlight in clear PET bottles..."
+User: [Tap keyboard icon, type] "I need medical help"
+AI: [Translates to Farsi] "من به کمک پزشکی نیاز دارم"
+[Tap speaker icon to hear pronunciation]
 ```
 
-## 🏆 **Technical Highlights**
+## 🌐 Supported Languages
 
-### Performance Optimizations
-- **Memory Management**: Dynamic model loading/unloading
-- **Quantization**: 4-bit quantized models for mobile efficiency
-- **Parallel Processing**: Concurrent audio/AI operations
-- **Resource Pooling**: Efficient tensor buffer management
+The translation system supports **7 languages** with native text-to-speech:
 
-### Privacy & Security
-- **Fully On-Device**: No data leaves the device
-- **No Internet Required**: Complete offline operation
-- **Local Storage**: Encrypted local databases
-- **Permission Management**: Minimal required permissions
+- **English** (en-US)
+- **Chinese** (zh-CN) - Mandarin Simplified
+- **Arabic** (ar-SA) - Modern Standard Arabic
+- **Farsi** (fa-IR) - Persian
+- **Kurdish** (ku) - Kurmanji
+- **Turkish** (tr-TR)
+- **Urdu** (ur-PK)
 
-### Cross-Platform Compatibility
-- **Native Integration**: C++ for performance-critical operations
-- **JNI Bridge**: Seamless Kotlin-C++ communication
-- **Platform Optimization**: ARM64 and x86_64 support
-- **Modern Android**: Targets API 34 with backward compatibility
+## 🔍 RAG Knowledge Base
 
-## 📚 **Knowledge Base Content**
+The app includes a comprehensive emergency/field operations knowledge base:
 
-The app includes a comprehensive knowledge base for field operations:
-
-### Emergency Medicine
-- First aid procedures
-- Injury assessment protocols
-- Medical supply usage
+### **Emergency Medicine**
+- First aid procedures and protocols
+- Injury assessment and treatment
+- Medical supply usage instructions
 - Emergency response procedures
 
-### Cultural Guidelines
-- Iranian cultural norms
-- Communication etiquette
+### **Cultural Guidelines**
+- Iranian cultural norms and etiquette
 - Religious considerations
+- Communication best practices
 - Social interaction guidelines
 
-### Field Operations
-- Equipment usage
-- Safety protocols
-- Communication procedures
-- Emergency signaling
+### **Field Operations**
+- Equipment usage and maintenance
+- Safety protocols and procedures
+- Communication systems
+- Emergency signaling methods
 
-### Technical Procedures
-- Water purification methods
-- Shelter construction
-- Equipment maintenance
+### **Technical Procedures**
+- Water purification techniques
+- Shelter construction methods
+- Equipment troubleshooting
 - Safety assessments
 
-## 🔬 **Development Notes**
+## 🏆 Technical Highlights
 
-### C++ Components
+### **Performance Optimizations**
+- **Memory Management**: Dynamic model loading/unloading for multimodal operations
+- **Quantization**: 4-bit quantized models for mobile efficiency
+- **Custom Multilingual Embedder**: DistilUSE Base Multilingual Cased v2 (512D) for semantic search
+- **Parallel Processing**: Concurrent audio/AI operations
+
+### **Privacy & Security**
+- **Fully On-Device**: No data transmission to external servers
+- **No Internet Required**: Complete offline operation
+- **Local Storage**: Encrypted SQLite vector database
+- **Minimal Permissions**: Only camera and microphone access
+
+### **Modern Architecture**
+- **Jetpack Compose**: Modern reactive UI with Material 3 design
+- **Kotlin Coroutines**: Asynchronous operations with proper error handling
+- **MVVM Pattern**: Clean separation of concerns
+- **JNI Integration**: High-performance C++ components
+
+## 🔬 Development Notes
+
+### **C++ Components**
 - **TFLite Engine**: High-performance model inference
-- **Audio Processing**: Real-time audio format conversion
+- **Audio Processing**: Real-time format conversion (16kHz PCM)
 - **Memory Management**: Efficient resource handling
-- **JNI Interface**: Clean Kotlin-C++ integration
+- **JNI Interface**: Clean Kotlin-C++ bridge
 
-### Kotlin Architecture
-- **Coroutines**: Asynchronous operations
-- **Compose UI**: Modern reactive UI
-- **ViewModel Pattern**: MVVM architecture
-- **Dependency Injection**: Clean component separation
+### **Kotlin Architecture**
+- **ChatViewModel**: Orchestrates AI operations and state management
+- **RagPipeline**: Central AI processing with multimodal support
+- **Custom Embedder**: Multilingual text embedding for RAG
+- **Audio Integration**: Whisper model wrapper with native processing
 
-### Model Integration
-- **MediaPipe**: Google's ML framework
-- **TensorFlow Lite**: Mobile-optimized inference
-- **Quantization**: 4-bit and 8-bit model compression
-- **Dynamic Loading**: Runtime model management
+### **Model Integration**
+- **MediaPipe**: Google's ML framework for LLM inference
+- **TensorFlow Lite**: Mobile-optimized inference engine
+- **Dynamic Loading**: Runtime model management with memory optimization
+- **Multimodal Processing**: Text + image fusion for Gemma 3n
 
+## 📚 File Structure
+
+```
+android/
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/google/ai/edge/samples/rag/
+│   │   │   ├── MainActivity.kt          # App entry point
+│   │   │   ├── MainScreen.kt           # Mode selection screen
+│   │   │   ├── ChatScreen.kt           # AI chat interface
+│   │   │   ├── TranslationScreen.kt    # Translation interface
+│   │   │   ├── ChatViewModel.kt        # Chat state management
+│   │   │   ├── RagPipeline.kt          # Core AI pipeline
+│   │   │   ├── WhisperModel.kt         # Speech-to-text wrapper
+│   │   │   └── AudioRecorder.kt        # Audio capture
+│   │   ├── cpp/                        # C++ native components
+│   │   ├── assets/                     # Knowledge base content
+│   │   └── res/                        # UI resources
+│   └── build.gradle.kts               # Dependencies
+├── README.md                          # This file
+└── gradlew                           # Gradle wrapper
+```
 
 ---
+
+**Note**: This is a demonstration app showcasing on-device AI capabilities. Ensure you have the proper model files installed before running the application.
 
 
 
