@@ -521,15 +521,8 @@ Translation:"""
       "- For locations: Provide step-by-step navigation or contact procedures\n" +
       "- Include time estimates when relevant (e.g., \"Step 1: Apply pressure for 5-10 minutes\")\n" +
       "- Add safety warnings at the beginning of dangerous procedures\n" +
-      "- End with \"Next steps:\" if additional actions are needed\n" +
-      "- If information is incomplete, clearly state what additional resources are needed\n\n" +
-      "RESPONSE FORMAT:\n" +
-      "**IMMEDIATE ACTION:** (if urgent)\n" +
-      "**STEP-BY-STEP PROCEDURE:**\n" +
-      "1. [First step with specific details]\n" +
-      "2. [Second step with specific details]\n" +
-      "3. [Continue with numbered steps]\n" +
-      "**SAFETY WARNINGS:** (if applicable)\n" +
-      "**NEXT STEPS:** (if follow-up required)\n\n"
+      "- End with Next \"steps\" (or corresponding translation): if additional actions are needed\n" +
+      "- If information is incomplete, clearly state what additional resources are needed\n\n"
+      
   }
 }
