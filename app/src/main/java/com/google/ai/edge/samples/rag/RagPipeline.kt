@@ -8,7 +8,6 @@ import com.google.ai.edge.localagents.rag.memory.DefaultSemanticTextMemory
 import com.google.ai.edge.localagents.rag.memory.SqliteVectorStore
 import com.google.ai.edge.localagents.rag.models.AsyncProgressListener
 import com.google.ai.edge.localagents.rag.models.Embedder
-import com.google.ai.edge.localagents.rag.models.GeckoEmbeddingModel
 import com.google.ai.edge.localagents.rag.models.GeminiEmbedder
 import com.google.ai.edge.localagents.rag.models.LanguageModelResponse
 import com.google.ai.edge.localagents.rag.models.MediaPipeLlmBackend
@@ -26,10 +25,10 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
 import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession.LlmInferenceSessionOptions
 import com.google.mediapipe.tasks.genai.llminference.GraphOptions
 import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.genai.llminference.ProgressListener
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.util.Optional
 import java.util.concurrent.Executors
 import kotlin.jvm.optionals.getOrNull
 import kotlinx.coroutines.coroutineScope
@@ -85,10 +84,11 @@ class RagPipeline(private val application: Application) {
 
   private val embedder: Embedder<String> =
     if (COMPUTE_EMBEDDINGS_LOCALLY) {
-      GeckoEmbeddingModel(
-        GECKO_MODEL_PATH,
-        Optional.of(TOKENIZER_MODEL_PATH),
-        USE_GPU_FOR_EMBEDDINGS,
+      // Use TensorFlow Lite Task Library TextEmbedder with built-in SentencePiece tokenization
+      // REAL SentencePiece tokenization + embeddings in ONE library call!
+      CustomMultilingualEmbedder(
+        context = application.applicationContext,
+        useGpu = USE_GPU_FOR_EMBEDDINGS
       )
     } else {
       GeminiEmbedder(GEMINI_EMBEDDING_MODEL, GEMINI_API_KEY)
@@ -99,7 +99,7 @@ class RagPipeline(private val application: Application) {
       mediaPipeLanguageModel,
       PromptBuilder(PROMPT_TEMPLATE),
       DefaultSemanticTextMemory(
-        // Gecko embedding model dimension is 768
+        // Custom multilingual embedding model dimension is 768 (configurable in embedder)
         SqliteVectorStore(768),
         embedder
       )
@@ -511,7 +511,7 @@ Translation:"""
 
     private const val GEMMA_MODEL_PATH = "/data/local/tmp/gemma-3n-E4B-it-int4.task"
     private const val TOKENIZER_MODEL_PATH = "/data/local/tmp/sentencepiece.model"
-    private const val GECKO_MODEL_PATH = "/data/local/tmp/gecko.tflite"
+    private const val MULTILINGUAL_MODEL_PATH = "/data/local/tmp/model_int8.tflite"
     private const val GEMINI_EMBEDDING_MODEL = "models/text-embedding-004"
     private const val GEMINI_API_KEY = "..."
 
