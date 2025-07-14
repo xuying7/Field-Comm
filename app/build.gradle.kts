@@ -88,14 +88,17 @@ dependencies {
     implementation("com.google.guava:guava:33.3.1-android")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.9.0")
 
-    implementation("com.google.mediapipe:tasks-genai:0.10.24")
-    implementation("com.google.mediapipe:tasks-text:latest.release")
+    implementation("com.google.mediapipe:tasks-genai:latest.release")
+    implementation("com.google.mediapipe:tasks-vision:0.10.15")  // For BitmapImageBuilder and MPImage
+    implementation("com.google.mediapipe:tasks-text:latest.release")    // For TextEmbedder with REAL SentencePiece!
     implementation("com.google.ai.edge.localagents:localagents-rag:0.1.1")
-
-    // TensorFlow Lite dependencies
+    
+    // TensorFlow Lite for custom embedding models
     implementation("org.tensorflow:tensorflow-lite:2.13.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
-    implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.13.0")
+    
+    // Mature BERT tokenizer (production-ready Java library)
+    // Source: https://github.com/zhongbin1/bert_tokenization_for_java
 
     // Compose Material icons (filled, outlined, etc.)
     implementation("androidx.compose.material:material-icons-extended")

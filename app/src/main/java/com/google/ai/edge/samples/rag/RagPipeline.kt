@@ -36,7 +36,6 @@ import kotlinx.coroutines.guava.await
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
-import java.util.concurrent.atomic.AtomicBoolean
 
 /** The RAG pipeline for LLM generation. */
 class RagPipeline(private val application: Application) {
@@ -82,25 +81,21 @@ class RagPipeline(private val application: Application) {
       mediaPipeLanguageModelSessionOptions
     )
 
-  private val embedder: Embedder<String> =
-    if (COMPUTE_EMBEDDINGS_LOCALLY) {
-      // Use TensorFlow Lite Task Library TextEmbedder with built-in SentencePiece tokenization
-      // REAL SentencePiece tokenization + embeddings in ONE library call!
-      CustomMultilingualEmbedder(
-        context = application.applicationContext,
-        useGpu = USE_GPU_FOR_EMBEDDINGS
-      )
-    } else {
-      GeminiEmbedder(GEMINI_EMBEDDING_MODEL, GEMINI_API_KEY)
-    }
+  private val embedder: Embedder<String> = 
+    // Use custom multilingual embedder with proper DistilBERT tokenization
+    CustomMultilingualEmbedder(
+      context = application.applicationContext,
+      useGpu = USE_GPU_FOR_EMBEDDINGS
+    )
+  
 
   private val config =
     ChainConfig.create(
       mediaPipeLanguageModel,
       PromptBuilder(PROMPT_TEMPLATE),
       DefaultSemanticTextMemory(
-        // Custom multilingual embedding model dimension is 768 (configurable in embedder)
-        SqliteVectorStore(768),
+        // Custom multilingual model dimension is 512 (sentence-transformers/distiluse-base-multilingual-cased-v2)
+        SqliteVectorStore(512),
         embedder
       )
     )
@@ -505,15 +500,9 @@ Translation:"""
   }
 
   companion object {
-    private const val COMPUTE_EMBEDDINGS_LOCALLY = true
     private const val USE_GPU_FOR_EMBEDDINGS = true
     private const val CHUNK_SEPARATOR = "<chunk_splitter>"
-
     private const val GEMMA_MODEL_PATH = "/data/local/tmp/gemma-3n-E4B-it-int4.task"
-    private const val TOKENIZER_MODEL_PATH = "/data/local/tmp/sentencepiece.model"
-    private const val MULTILINGUAL_MODEL_PATH = "/data/local/tmp/model_int8.tflite"
-    private const val GEMINI_EMBEDDING_MODEL = "models/text-embedding-004"
-    private const val GEMINI_API_KEY = "..."
 
     // Emergency/Crisis Management prompt template for Field-Comm system
     // Optimized for medical staff, rescue coordinators, and emergency officials
@@ -524,7 +513,6 @@ Translation:"""
       "EMERGENCY QUERY: {1}\n\n" +
       "RESPONSE GUIDELINES:\n" +
       "- (CRITICAL) Respond ONLY in the same language as the user's query. Do not add translations or any text in other languages.\n" +
-      "- If the query is conversational or not an emergency request, politely state that you are an emergency assistant and can only help with crisis-related questions.\n" +
       "- Provide IMMEDIATE, actionable information\n" +
       "- For medical queries: Give clear, step-by-step first aid instructions\n" +
       "- For locations: Provide specific addresses, coordinates, or landmarks\n" +
