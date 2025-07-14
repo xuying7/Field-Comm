@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,11 +56,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -184,9 +187,16 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
                     onSpeakText = { speakText(translatedText, selectedLanguage) },
                     isTtsReady = isTtsReady
                 )
+                Spacer(modifier = Modifier.weight(1f))
+            } else {
+                // Center the instruction card vertically in the available space
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TranslationInstructionCard()
+                }
             }
-            
-            Spacer(modifier = Modifier.weight(1f))
             
             // Audio states for functionality (not display)
             val isRecording by chatViewModel.isRecording
@@ -386,6 +396,95 @@ private fun TranslationResultCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TranslationInstructionCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Translate,
+                contentDescription = "Translation mode",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(32.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                text = "Real-time Translation",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Choose your target language above, then:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Instructions with icons
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TranslationInstructionRow(
+                    icon = Icons.Filled.Mic,
+                    text = "Voice: Press and hold microphone to speak"
+                )
+                TranslationInstructionRow(
+                    icon = Icons.Filled.Keyboard,
+                    text = "Text: Tap keyboard icon to type manually"
+                )
+                TranslationInstructionRow(
+                    icon = Icons.Filled.VolumeUp,
+                    text = "Audio: Translations are automatically spoken"
+                )
+            
+            }
+            
+        }
+    }
+}
+
+@Composable
+private fun TranslationInstructionRow(
+    icon: ImageVector,
+    text: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

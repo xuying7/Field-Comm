@@ -40,22 +40,33 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -192,15 +203,25 @@ fun ChatScreen(viewModel: ChatViewModel, navController: NavController) {
             val lazyColumnListState = rememberLazyListState()
 
             // Chat-style list: newest message at the bottom, stay pinned when keyboard opens
-            LazyColumn(
-                state = lazyColumnListState,
-                modifier = Modifier.weight(1f),
-                reverseLayout = true,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 4.dp)
-            ) {
-                items(items = viewModel.messages.asReversed()) { message ->
-                    MessageView(messageData = message)
+            if (viewModel.messages.isEmpty()) {
+                // Center the instruction card vertically in the available space
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ChatInstructionCard()
+                }
+            } else {
+                LazyColumn(
+                    state = lazyColumnListState,
+                    modifier = Modifier.weight(1f),
+                    reverseLayout = true,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 4.dp)
+                ) {
+                    items(items = viewModel.messages.asReversed()) { message ->
+                        MessageView(messageData = message)
+                    }
                 }
             }
 
@@ -264,6 +285,93 @@ fun ChatScreen(viewModel: ChatViewModel, navController: NavController) {
                 )
             }
         }
+    }
+}
+
+@Composable
+fun ChatInstructionCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Chat,
+                contentDescription = "Chat mode",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(32.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                text = "AI Chat Assistant",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Ask questions and get help with:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Instructions with icons
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InstructionRow(
+                    icon = Icons.Filled.Mic,
+                    text = "Voice: Press and hold microphone to speak"
+                )
+                InstructionRow(
+                    icon = Icons.Filled.CameraAlt,
+                    text = "Image: Tap camera to analyze photos"
+                )
+                InstructionRow(
+                    icon = Icons.Filled.Send,
+                    text = "Text: Type your questions below"
+                )
+            }        
+        }
+    }
+}
+
+@Composable
+private fun InstructionRow(
+    icon: ImageVector,
+    text: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
