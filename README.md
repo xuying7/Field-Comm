@@ -1,9 +1,9 @@
-# Android RAG Sample - AI-Powered Field Communication App
+# AI-Powered Field Communication App
 
 A comprehensive Android application demonstrating **Retrieval-Augmented Generation (RAG)** with multimodal AI capabilities, featuring speech-to-text, text generation, translation, and image understanding - all running locally on-device.
 
 
-**.cpp code for integrate whisper.tflite on android are from vilassn/whisper_android! Amazing code!**
+**.cpp code for integrating whisper.tflite on android is from vilassn/whisper_android! Amazing code!**
 https://github.com/vilassn/whisper_android (MIT License)
 
 **TODO: REPLACE THE EMBEDDER TO MULTILINGUAL EMBEDDER**
@@ -211,7 +211,7 @@ adb push whisper-small.tflite /data/local/tmp/whisper-small.tflite
 adb push gemma-3n-E4B-it-int4.task /data/local/tmp/gemma-3n-E4B-it-int4.task
 
 # Optional: Gecko embedding model for local embeddings
-adb push gecko-embedding-model.tflite /data/local/tmp/gecko-embedding-model.tflite
+adb push gecko.tflite /data/local/tmp/gecko.tflite
 ```
 
 ### Model Sources
