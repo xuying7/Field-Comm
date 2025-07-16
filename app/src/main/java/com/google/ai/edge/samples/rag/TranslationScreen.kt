@@ -248,6 +248,8 @@ fun TranslationScreen(navController: NavController, chatViewModel: ChatViewModel
                                         }
                                     }
                                 )
+                                // Clear the input text after sending
+                                inputText = ""
                             }
                         },
                         enabled = !isTranslating,
