@@ -190,7 +190,7 @@ fun SendMessageView(
     selectedImageUris: List<android.net.Uri> = emptyList(),
     onClearImage: ((android.net.Uri) -> Unit)? = null,
     onAudioPermissionNeeded: (() -> Unit)? = null,
-    placeholder: String = "Ask Me Everything",
+    placeholder: String = "Ask Me Anything",
     showCamera: Boolean = true,
     showAudio: Boolean = true,
     onTextSubmit: ((String) -> Unit)? = null,
