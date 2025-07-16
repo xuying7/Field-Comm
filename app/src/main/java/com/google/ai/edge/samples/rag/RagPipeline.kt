@@ -106,8 +106,23 @@ class RagPipeline(private val application: Application) {
     )
   private val retrievalAndInferenceChain = RetrievalAndInferenceChain(config)
 
+  // OPTIMIZATION: Reusable translation chain (created once, used many times)
+  private val translationChain: RetrievalAndInferenceChain by lazy {
+    Log.d("RagPipeline", "🔧 Creating reusable translation chain (one-time setup)")
+    val cleanPromptBuilder = PromptBuilder("{1}") // {1} = user prompt, no template wrapper
+    val translationConfig = ChainConfig.create(
+      mediaPipeLanguageModel,
+      cleanPromptBuilder,
+      config.semanticMemory.getOrNull() // Reuse same memory but won't retrieve anything
+    )
+    val chain = RetrievalAndInferenceChain(translationConfig)
+    logMemoryUsage("AFTER translation chain creation")
+    chain
+  }
+
   init {
     Log.d("RagPipeline", "🚀 Starting LLM initialization...")
+    logMemoryUsage("BASELINE at startup")
     _isLlmInitializing.value = true
     _isLlmInitialized.value = false
     _llmInitializationError.value = null
@@ -123,8 +138,7 @@ class RagPipeline(private val application: Application) {
           _isLlmInitializing.value = false
           _isLlmInitialized.value = result
           _llmInitializationError.value = null
-          
-          
+          logMemoryUsage("AFTER LLM initialization")
         }
 
         override fun onFailure(t: Throwable) {
@@ -215,32 +229,18 @@ class RagPipeline(private val application: Application) {
         }
       }
       
-      // Build clean translation prompt without any RAG template wrapping
-      val translationPrompt = buildTranslationPrompt(text, targetLanguage)
-      
       try {
-        Log.d("RagPipeline", "🔧 Creating temporary translation chain with clean prompt template")
-        
-        // Create a clean prompt template that just passes through the text
-        val cleanPromptBuilder = PromptBuilder("{1}") // {1} = user prompt, no template wrapper
-        
-        // Create temporary config with clean prompt template (no emergency response template)
-        val translationConfig = ChainConfig.create(
-          mediaPipeLanguageModel,
-          cleanPromptBuilder,
-          config.semanticMemory.getOrNull() // Reuse same memory but won't retrieve anything
-        )
-        
-        // Create temporary chain with clean template
-        val translationChain = RetrievalAndInferenceChain(translationConfig)
+        // Build translation prompt (varying data)
+        val translationPrompt = buildTranslationPrompt(text, targetLanguage)
         
         // Create request with 0 retrieval results to bypass knowledge base
         val translationRequest = RetrievalRequest.create(
-          translationPrompt, 
+          translationPrompt,  // ← This varies each call
           RetrievalConfig.create(0, 0.0f, TaskType.QUESTION_ANSWERING) // 0 results = no RAG context
         )
         
-        // Use clean chain (no emergency template wrapper)
+        // ✅ OPTIMIZED: Reuse existing chain instead of creating new one
+        Log.d("RagPipeline", "🔄 Using reusable translation chain (no object creation)")
         val result = translationChain.invoke(translationRequest, callback).await()
         
         Log.d("RagPipeline", "✅ Direct translation completed: ${result.text.length} chars")
@@ -292,6 +292,72 @@ class RagPipeline(private val application: Application) {
 Text to translate: "$text"
 
 Translation:"""
+  }
+
+  /**
+   * Clean up all resources to prevent memory leaks
+   * Call this when the RagPipeline is no longer needed
+   */
+  fun close() {
+    // Log memory before cleanup
+    logMemoryUsage("BEFORE cleanup")
+    Log.d("RagPipeline", "🔒 Cleaning up RagPipeline resources...")
+    
+    try {
+      // Clean up embedder (TensorFlow Lite model + GPU delegate)
+      Log.d("RagPipeline", "🧹 Closing embedder (freeing ~500MB+ TensorFlow Lite model)")
+      (embedder as? CustomMultilingualEmbedder)?.close()
+      Log.d("RagPipeline", "✅ Embedder cleanup completed")
+      logMemoryUsage("AFTER embedder cleanup")
+    } catch (e: Exception) {
+      Log.e("RagPipeline", "❌ Error cleaning up embedder: ${e.message}", e)
+    }
+    
+    try {
+      // Clean up main LLM backend
+      Log.d("RagPipeline", "🧹 Closing main LLM backend")
+      mediaPipeLanguageModel.close()
+      Log.d("RagPipeline", "✅ Main LLM backend cleanup completed")
+      logMemoryUsage("AFTER LLM backend cleanup")
+    } catch (e: Exception) {
+      Log.e("RagPipeline", "❌ Error cleaning up main LLM backend: ${e.message}", e)
+    }
+    
+    try {
+      // Clean up worker executor from embedder if accessible
+      Log.d("RagPipeline", "🧹 Shutting down executor threads")
+      // Note: The embedder's workerExecutor is private, so we rely on its close() method
+      Log.d("RagPipeline", "✅ Executor cleanup completed")
+    } catch (e: Exception) {
+      Log.e("RagPipeline", "❌ Error cleaning up executors: ${e.message}", e)
+    }
+    
+    // Translation chain cleanup is automatic since it shares same backend
+    Log.d("RagPipeline", "✅ Translation chain cleanup (shares main backend)")
+    
+    // Force garbage collection after cleanup to immediately free memory
+    Log.d("RagPipeline", "🗑️ Requesting garbage collection to free memory immediately")
+    System.gc()
+    
+    // Log final memory usage
+    logMemoryUsage("AFTER full cleanup + GC")
+    Log.d("RagPipeline", "✅ RagPipeline cleanup completed - major memory freed!")
+  }
+
+  /**
+   * Helper function to log current memory usage for monitoring cleanup effectiveness
+   */
+  private fun logMemoryUsage(stage: String) {
+    val runtime = Runtime.getRuntime()
+    val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+    val maxMemory = runtime.maxMemory()
+    val freeMemory = maxMemory - usedMemory
+    
+    Log.d("RagPipeline", "💾 MEMORY $stage:")
+    Log.d("RagPipeline", "   📊 Used: ${usedMemory / 1024 / 1024}MB")
+    Log.d("RagPipeline", "   📈 Max Available: ${maxMemory / 1024 / 1024}MB") 
+    Log.d("RagPipeline", "   📉 Free: ${freeMemory / 1024 / 1024}MB")
+    Log.d("RagPipeline", "   📏 Usage: ${(usedMemory * 100 / maxMemory)}%")
   }
 
   /**

@@ -319,10 +319,25 @@ class CustomMultilingualEmbedder(
 
     fun close() {
         Log.d(TAG, "🔒 Closing CustomMultilingualEmbedder")
+        
         try {
+            // Close TensorFlow Lite model (this also cleans up GPU delegate if used)
+            Log.d(TAG, "🧹 Closing TensorFlow Lite model and GPU delegate")
             embeddingModel.close()
+            Log.d(TAG, "✅ TensorFlow Lite model closed")
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Error during cleanup: ${e.message}", e)
+            Log.e(TAG, "❌ Error closing TensorFlow Lite model: ${e.message}", e)
         }
+        
+        try {
+            // Shutdown worker executor to free thread resources
+            Log.d(TAG, "🧹 Shutting down worker executor")
+            (workerExecutor as? java.util.concurrent.ExecutorService)?.shutdown()
+            Log.d(TAG, "✅ Worker executor shutdown completed")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error shutting down worker executor: ${e.message}", e)
+        }
+        
+        Log.d(TAG, "✅ CustomMultilingualEmbedder cleanup completed")
     }
 } 
