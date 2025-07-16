@@ -239,10 +239,24 @@ class CustomMultilingualEmbedder(
                         outputMap[i] = Array(1) { Array(MAX_SEQUENCE_LENGTH) { FloatArray(768) } }
                         Log.d(TAG, "📄 Found sequence output at index $i")
                     }
+                    outputShape.size == 3 && outputShape[0] == 1 && outputShape[2] == 768 -> {
+                        // Handle any [1, seq_len, 768] sequence output (variable sequence length)
+                        val seqLen = outputShape[1]
+                        outputMap[i] = Array(1) { Array(seqLen) { FloatArray(768) } }
+                        Log.d(TAG, "📄 Found variable sequence output at index $i with length $seqLen")
+                    }
                     else -> {
-                        // Create generic tensor for other outputs
-                        val totalSize = outputShape.fold(1) { acc, dim -> acc * dim }
-                        outputMap[i] = FloatArray(totalSize)
+                        // Create generic tensor for other outputs based on exact shape
+                        when (outputShape.size) {
+                            1 -> outputMap[i] = FloatArray(outputShape[0])
+                            2 -> outputMap[i] = Array(outputShape[0]) { FloatArray(outputShape[1]) }
+                            3 -> outputMap[i] = Array(outputShape[0]) { Array(outputShape[1]) { FloatArray(outputShape[2]) } }
+                            else -> {
+                                // Fallback for higher dimensions
+                                val totalSize = outputShape.fold(1) { acc, dim -> acc * dim }
+                                outputMap[i] = FloatArray(totalSize)
+                            }
+                        }
                         Log.d(TAG, "❓ Unknown output $i with shape ${outputShape.contentToString()}")
                     }
                 }
@@ -268,7 +282,7 @@ class CustomMultilingualEmbedder(
                 val output = outputMap[i]
                 if (output is Array<*> && output[0] is Array<*>) {
                     val sequenceOutput = output[0] as Array<FloatArray>
-                    if (sequenceOutput.size == MAX_SEQUENCE_LENGTH && sequenceOutput[0].size == 768) {
+                    if (sequenceOutput.isNotEmpty() && sequenceOutput[0].size == 768) {
                         // Use [CLS] token embedding (first position) and project to 512D
                         val clsEmbedding = sequenceOutput[0] // [CLS] token at position 0
                         val pooledEmbedding = FloatArray(EMBEDDING_DIMENSION)
@@ -278,7 +292,7 @@ class CustomMultilingualEmbedder(
                             pooledEmbedding[j] = clsEmbedding[j]
                         }
                         
-                        Log.d(TAG, "✅ TensorFlow Lite inference completed - pooled from sequence output")
+                        Log.d(TAG, "✅ TensorFlow Lite inference completed - pooled from sequence output (length: ${sequenceOutput.size})")
                         return pooledEmbedding
                     }
                 }

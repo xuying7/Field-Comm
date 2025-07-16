@@ -33,12 +33,17 @@ import java.util.concurrent.Executors
 import kotlin.jvm.optionals.getOrNull
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.guava.await
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 
 /** The RAG pipeline for LLM generation. */
 class RagPipeline(private val application: Application) {
+  
+  // Coroutine-safe mutex to prevent concurrent LLM backend access
+  private val backendMutex = Mutex()
   
   // LLM initialization state tracking
   private val _isLlmInitialized = mutableStateOf(false)
@@ -179,9 +184,11 @@ class RagPipeline(private val application: Application) {
     prompt: String,
     callback: AsyncProgressListener<LanguageModelResponse>?,
   ): String = coroutineScope {
-    val retrievalRequest =
-      RetrievalRequest.create(prompt, RetrievalConfig.create(3, 0.0f, TaskType.QUESTION_ANSWERING))
-    retrievalAndInferenceChain.invoke(retrievalRequest, callback).await().text
+    backendMutex.withLock {
+      val retrievalRequest =
+        RetrievalRequest.create(prompt, RetrievalConfig.create(3, 0.0f, TaskType.QUESTION_ANSWERING))
+      retrievalAndInferenceChain.invoke(retrievalRequest, callback).await().text
+    }
   }
 
   /**
@@ -193,54 +200,56 @@ class RagPipeline(private val application: Application) {
     targetLanguage: String,
     callback: AsyncProgressListener<LanguageModelResponse>?,
   ): String = coroutineScope {
-    Log.d("RagPipeline", "🌐 Starting direct translation: '$text' -> $targetLanguage")
-    
-    // Check if the main backend is initialized (it might have been closed during multimodal ops)
-    if (!isMainBackendInitialized()) {
-      Log.w("RagPipeline", "⚠️ Main backend was closed, reinitializing for translation...")
-      try {
-        reinitializeMainBackend()
-        Log.d("RagPipeline", "✅ Main backend reinitialized successfully")
-      } catch (e: Exception) {
-        Log.e("RagPipeline", "❌ Failed to reinitialize main backend", e)
-        return@coroutineScope "Translation failed: Backend initialization error"
+    backendMutex.withLock {
+      Log.d("RagPipeline", "🌐 Starting direct translation: '$text' -> $targetLanguage")
+      
+      // Check if the main backend is initialized (it might have been closed during multimodal ops)
+      if (!isMainBackendInitialized()) {
+        Log.w("RagPipeline", "⚠️ Main backend was closed, reinitializing for translation...")
+        try {
+          reinitializeMainBackend()
+          Log.d("RagPipeline", "✅ Main backend reinitialized successfully")
+        } catch (e: Exception) {
+          Log.e("RagPipeline", "❌ Failed to reinitialize main backend", e)
+          return@coroutineScope "Translation failed: Backend initialization error"
+        }
       }
-    }
-    
-    // Build clean translation prompt without any RAG template wrapping
-    val translationPrompt = buildTranslationPrompt(text, targetLanguage)
-    
-    try {
-      Log.d("RagPipeline", "🔧 Creating temporary translation chain with clean prompt template")
       
-      // Create a clean prompt template that just passes through the text
-      val cleanPromptBuilder = PromptBuilder("{1}") // {1} = user prompt, no template wrapper
+      // Build clean translation prompt without any RAG template wrapping
+      val translationPrompt = buildTranslationPrompt(text, targetLanguage)
       
-      // Create temporary config with clean prompt template (no emergency response template)
-      val translationConfig = ChainConfig.create(
-        mediaPipeLanguageModel,
-        cleanPromptBuilder,
-        config.semanticMemory.getOrNull() // Reuse same memory but won't retrieve anything
-      )
-      
-      // Create temporary chain with clean template
-      val translationChain = RetrievalAndInferenceChain(translationConfig)
-      
-      // Create request with 0 retrieval results to bypass knowledge base
-      val translationRequest = RetrievalRequest.create(
-        translationPrompt, 
-        RetrievalConfig.create(0, 0.0f, TaskType.QUESTION_ANSWERING) // 0 results = no RAG context
-      )
-      
-      // Use clean chain (no emergency template wrapper)
-      val result = translationChain.invoke(translationRequest, callback).await()
-      
-      Log.d("RagPipeline", "✅ Direct translation completed: ${result.text.length} chars")
-      result.text
-      
-    } catch (e: Exception) {
-      Log.e("RagPipeline", "❌ Direct translation failed", e)
-      "Translation failed: ${e.message}"
+      try {
+        Log.d("RagPipeline", "🔧 Creating temporary translation chain with clean prompt template")
+        
+        // Create a clean prompt template that just passes through the text
+        val cleanPromptBuilder = PromptBuilder("{1}") // {1} = user prompt, no template wrapper
+        
+        // Create temporary config with clean prompt template (no emergency response template)
+        val translationConfig = ChainConfig.create(
+          mediaPipeLanguageModel,
+          cleanPromptBuilder,
+          config.semanticMemory.getOrNull() // Reuse same memory but won't retrieve anything
+        )
+        
+        // Create temporary chain with clean template
+        val translationChain = RetrievalAndInferenceChain(translationConfig)
+        
+        // Create request with 0 retrieval results to bypass knowledge base
+        val translationRequest = RetrievalRequest.create(
+          translationPrompt, 
+          RetrievalConfig.create(0, 0.0f, TaskType.QUESTION_ANSWERING) // 0 results = no RAG context
+        )
+        
+        // Use clean chain (no emergency template wrapper)
+        val result = translationChain.invoke(translationRequest, callback).await()
+        
+        Log.d("RagPipeline", "✅ Direct translation completed: ${result.text.length} chars")
+        result.text
+        
+      } catch (e: Exception) {
+        Log.e("RagPipeline", "❌ Direct translation failed", e)
+        "Translation failed: ${e.message}"
+      }
     }
   }
 
@@ -297,12 +306,12 @@ Translation:"""
     image: Bitmap,
     callback: AsyncProgressListener<LanguageModelResponse>?,
   ): String = coroutineScope {
-    
-    Log.d("RagPipeline", "🚀 Starting multimodal RAG generation")
-    
-    var llmInference: LlmInference? = null
-    var session: LlmInferenceSession? = null
-    var wasOriginalBackendClosed = false
+    backendMutex.withLock {
+      Log.d("RagPipeline", "🚀 Starting multimodal RAG generation")
+      
+      var llmInference: LlmInference? = null
+      var session: LlmInferenceSession? = null
+      var wasOriginalBackendClosed = false
     
     try {
       // Step 1: Get RAG context first (your requirement)
@@ -496,6 +505,7 @@ Translation:"""
       } catch (e: Exception) {
         Log.e("RagPipeline", "⚠️ Error during multimodal cleanup", e)
       }
+    }
     }
   }
 
