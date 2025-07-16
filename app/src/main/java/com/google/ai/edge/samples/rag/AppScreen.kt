@@ -282,11 +282,7 @@ fun SendMessageView(
                 audioInitialized = audioInitialized,
                 onPhotoClick = onPhotoClick,
                 onAudioClick = {
-                    if (!audioInitialized) {
-                        Log.d("SendMessageView", "⚠️ Audio components not initialized yet")
-                        return@ActionButtonsRow
-                    }
-                    
+                    // Permission check first, then AudioRecorder will initialize on-demand
                     when (PackageManager.PERMISSION_GRANTED) {
                         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) -> {
                             viewModel?.toggleAudioRecording { transcriptionResult ->
@@ -503,8 +499,8 @@ private fun ActionButtonsRow(
                     Icon(
                         imageVector = if (isRecording) Icons.Filled.FiberManualRecord else Icons.Filled.Mic,
                         contentDescription = when {
-                            !audioInitialized -> "Initializing audio..."
                             isRecording -> "Stop recording"
+                            transcriptionInProgress -> "Processing audio..."
                             else -> "Start voice input"
                         },
                         tint = when {

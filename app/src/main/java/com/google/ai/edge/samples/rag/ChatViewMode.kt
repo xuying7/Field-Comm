@@ -44,6 +44,9 @@ class ChatViewModel constructor(private val application: Application) :
   private val _audioInitialized = mutableStateOf(false)
   val audioInitialized: androidx.compose.runtime.State<Boolean> = _audioInitialized
   
+  // AudioRecorder initialization state (separate from overall audio state)
+  private var audioRecorderInitialized = false
+  
   // LLM initialization state - exposed from RagPipeline
   val isLlmInitialized: androidx.compose.runtime.State<Boolean> = ragPipeline.isLlmInitialized
   val isLlmInitializing: androidx.compose.runtime.State<Boolean> = ragPipeline.isLlmInitializing
@@ -70,6 +73,10 @@ class ChatViewModel constructor(private val application: Application) :
     })
     
     // Initialize audio components
+    initializeAudioComponents()
+  }
+
+  private fun initializeAudioComponents() {
     viewModelScope.launch {
       withContext(backgroundExecutor.asCoroutineDispatcher()) {
         Log.d("ChatViewModel", "🎙️ Initializing audio components...")
@@ -85,25 +92,22 @@ class ChatViewModel constructor(private val application: Application) :
           }
         })
         
-        // Initialize AudioRecorder
-        val audioInitSuccess = audioRecorder.initialize()
-        Log.d("ChatViewModel", "🎙️ AudioRecorder initialized: $audioInitSuccess")
-        
-        // Initialize WhisperModel
+        // Only initialize WhisperModel at startup (doesn't require runtime permissions)
         val whisperInitSuccess = whisperModel.initialize()
         Log.d("ChatViewModel", "🗣️ WhisperModel initialized: $whisperInitSuccess")
         
-        // Update initialization state
+        // AudioRecorder will be initialized later when permission is granted
+        Log.d("ChatViewModel", "🎙️ AudioRecorder initialization deferred until permission granted")
+        
+        // Update initialization state - only WhisperModel for now
         viewModelScope.launch {
-          _audioInitialized.value = audioInitSuccess && whisperInitSuccess
+          _audioInitialized.value = whisperInitSuccess
         }
         
-        if (audioInitSuccess && whisperInitSuccess) {
-          Log.d("ChatViewModel", "✅ All audio components initialized successfully")
+        if (whisperInitSuccess) {
+          Log.d("ChatViewModel", "✅ WhisperModel initialized successfully (AudioRecorder pending permission)")
         } else {
-          Log.e("ChatViewModel", "❌ Failed to initialize audio components")
-          Log.e("ChatViewModel", "  - AudioRecorder: $audioInitSuccess")
-          Log.e("ChatViewModel", "  - WhisperModel: $whisperInitSuccess")
+          Log.e("ChatViewModel", "❌ Failed to initialize WhisperModel")
         }
       }
     }
@@ -186,7 +190,7 @@ class ChatViewModel constructor(private val application: Application) :
   }
 
   /**
-   * Start audio recording for speech-to-text conversion
+   * Start audio recording
    */
   fun startAudioRecording(onTranscriptionResult: (String) -> Unit) {
     if (_isRecording.value) {
@@ -194,14 +198,16 @@ class ChatViewModel constructor(private val application: Application) :
       return
     }
     
-    if (!_audioInitialized.value) {
-      Log.e("ChatViewModel", "❌ Audio components not initialized yet")
-      return
-    }
-    
     viewModelScope.launch {
       withContext(backgroundExecutor.asCoroutineDispatcher()) {
         Log.d("ChatViewModel", "🎙️ Starting audio recording...")
+        
+        // Initialize AudioRecorder if needed (now that we have permission)
+        val audioRecorderReady = initializeAudioRecorderIfNeeded()
+        if (!audioRecorderReady) {
+          Log.e("ChatViewModel", "❌ Failed to initialize AudioRecorder")
+          return@withContext
+        }
         
         try {
           audioRecorder.startRecording(object : AudioRecorder.AudioRecordingCallback {
@@ -348,6 +354,34 @@ class ChatViewModel constructor(private val application: Application) :
   ): String {
     return withContext(backgroundExecutor.asCoroutineDispatcher()) {
       ragPipeline.translateDirectly(text, targetLanguage, callback)
+    }
+  }
+
+  /**
+   * Initialize AudioRecorder (called when permission is granted)
+   */
+  private suspend fun initializeAudioRecorderIfNeeded(): Boolean {
+    if (audioRecorderInitialized) {
+      return true // Already initialized
+    }
+    
+    return withContext(backgroundExecutor.asCoroutineDispatcher()) {
+      Log.d("ChatViewModel", "🎙️ Initializing AudioRecorder with permission...")
+      val success = audioRecorder.initialize()
+      Log.d("ChatViewModel", "🎙️ AudioRecorder initialized: $success")
+      
+      if (success) {
+        audioRecorderInitialized = true
+        // Update overall audio state to include AudioRecorder now
+        viewModelScope.launch {
+          _audioInitialized.value = true // WhisperModel already initialized + AudioRecorder now ready
+        }
+        Log.d("ChatViewModel", "✅ All audio components now ready")
+      } else {
+        Log.e("ChatViewModel", "❌ AudioRecorder initialization failed even with permission")
+      }
+      
+      success
     }
   }
 
