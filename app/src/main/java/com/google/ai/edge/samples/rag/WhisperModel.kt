@@ -21,7 +21,7 @@ class WhisperModel(private val context: Context) {
     
     companion object {
         private const val TAG = "WhisperModel"
-        private const val MODEL_PATH = "/data/local/tmp/whisper-small.tflite"
+        private const val MODEL_PATH = "models/whisper-small.tflite"
         
         // Messages for status updates
         const val MSG_PROCESSING = "Processing..."

@@ -13,6 +13,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
+import java.io.File
 import java.io.FileInputStream
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
@@ -48,8 +49,8 @@ class CustomMultilingualEmbedder(
         private const val MAX_VOCAB_SIZE = 30522             // Safe vocabulary size limit for model compatibility
         
         // Model paths
-        private const val VOCAB_FILE_PATH = "/data/local/tmp/vocab.txt"           // DistilBERT vocab file
-        private const val MULTILINGUAL_MODEL_PATH = "/data/local/tmp/model_int8.tflite"  // Your custom embedding model
+            private const val VOCAB_FILE_PATH = "models/vocab.txt"           // DistilBERT vocab file
+    private const val MULTILINGUAL_MODEL_PATH = "models/model_int8.tflite"  // Your custom embedding model
     }
 
     // Mature BERT tokenizer (production-ready)
@@ -76,8 +77,9 @@ class CustomMultilingualEmbedder(
         // Initialize mature BERT tokenizer
         bertTokenizer = try {
             Log.d(TAG, "🔧 Loading mature BERT tokenizer with vocab: $VOCAB_FILE_PATH")
+            val vocabPath = getActualFilePath(VOCAB_FILE_PATH)
             FullTokenizer(
-                VOCAB_FILE_PATH,
+                vocabPath,
                 true,   // has_chinese: support Chinese characters
                 true    // do_lower: convert to lowercase
             )
@@ -310,11 +312,48 @@ class CustomMultilingualEmbedder(
 
     private fun loadModelFile(modelPath: String): MappedByteBuffer {
         Log.d(TAG, "📁 Loading model file: $modelPath")
-        val fileInputStream = FileInputStream(modelPath)
-        val fileChannel = fileInputStream.channel
-        val startOffset = 0L
-        val declaredLength = fileChannel.size()
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        
+        return if (modelPath.startsWith("/")) {
+            // Absolute path - load from file system
+            val fileInputStream = FileInputStream(modelPath)
+            val fileChannel = fileInputStream.channel
+            val startOffset = 0L
+            val declaredLength = fileChannel.size()
+            fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        } else {
+            // Asset path - load from assets
+            val assetFileDescriptor = context.assets.openFd(modelPath)
+            val fileInputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
+            val fileChannel = fileInputStream.channel
+            val startOffset = assetFileDescriptor.startOffset
+            val declaredLength = assetFileDescriptor.declaredLength
+            fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        }
+    }
+
+    /**
+     * Get actual file path - copy from assets to internal storage if needed
+     */
+    private fun getActualFilePath(path: String): String {
+        return if (path.startsWith("/")) {
+            // Already an absolute path
+            path
+        } else {
+            // Asset path - copy to internal storage
+            val fileName = path.substringAfterLast("/")
+            val internalFile = File(context.filesDir, fileName)
+            
+            if (!internalFile.exists()) {
+                Log.d(TAG, "📥 Copying asset $path to internal storage: ${internalFile.absolutePath}")
+                context.assets.open(path).use { input ->
+                    internalFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+            
+            internalFile.absolutePath
+        }
     }
 
     fun close() {

@@ -1,31 +1,42 @@
-# Whisper Model Setup - Proven Implementation
+# Model Setup - Hybrid Approach
 
 ## Required Files
 
-Place your Whisper TensorFlow Lite model at this location on your device:
+### Assets Bundle (Small Models)
+Place these files in `app/src/main/assets/models/` directory:
 
-- `/data/local/tmp/whisper-small.tflite` - The main Whisper model file
+- `whisper-small.tflite` - Speech-to-text model (~242 MB)
+- `vocab.txt` - Multilingual embedder vocabulary (~996 kB)
+- `model_int8.tflite` - Multilingual embedder model (~134 MB)
 
-## Getting the Model
+### ADB Push (Large Model)
+Install the large model via ADB due to APK size limitations:
 
-You can download a pre-converted Whisper model from:
-1. [TensorFlow Hub](https://tfhub.dev/openai/whisper/1)
-2. [Hugging Face](https://huggingface.co/openai/whisper-small)
-3. [Qualcomm AI Hub - Whisper Tiny En](https://aihub.qualcomm.com/models/whisper_tiny_en)
-4. Convert your own using the official Whisper conversion tools
+- `gemma-3n-E4B-it-int4.task` - Multimodal language model (~4.4 GB)
+
+## Getting the Models
+
+You can download the models from:
+1. **Whisper**: [TensorFlow Hub](https://tfhub.dev/openai/whisper/1) or [Hugging Face](https://huggingface.co/openai/whisper-small)
+2. **Gemma**: [Qualcomm AI Hub](https://aihub.qualcomm.com/) or convert from Hugging Face
+3. **Embedder**: Custom DistilBERT multilingual model
 
 ## Model Requirements
 
-- Format: TensorFlow Lite (.tflite)
-- Input: 16kHz mono audio
-- Output: Token IDs for transcription
+- **Whisper**: TensorFlow Lite format, 16kHz mono audio input
+- **Gemma**: MediaPipe Task format for multimodal inference
+- **Embedder**: TensorFlow Lite format with 512-dimension output
 
 ## Installation
 
-Use ADB to push the model to your device:
+### Asset Models (Automatic)
+Place small models in the assets/models/ directory before building. They'll be bundled with the APK.
+
+### Large Model (Manual)
+Use ADB to install the large Gemma model:
 
 ```bash
-adb push whisper-small.tflite /data/local/tmp/whisper-small.tflite
+adb push gemma-3n-E4B-it-int4.task /data/local/tmp/gemma-3n-E4B-it-int4.task
 ```
 
 ## Architecture - Based on Proven Java Implementation
@@ -97,7 +108,11 @@ The C++ implementation remains the proven working version:
 ## File Structure
 
 ```
-Device: /data/local/tmp/whisper-small.tflite
+app/src/main/assets/models/
+├── whisper-small.tflite
+├── gemma-3n-E4B-it-int4.task  
+├── vocab.txt
+└── model_int8.tflite
 ```
 
 ## ✅ PROVEN IMPLEMENTATION NOW DEPLOYED
