@@ -110,6 +110,8 @@ adb push gemma-3n-E4B-it-int4.task /data/local/tmp/gemma-3n-E4B-it-int4.task
 adb push vocab.txt /data/local/tmp/vocab.txt
 adb push model_int8.tflite /data/local/tmp/model_int8.tflite
 ```
+### APK Download Link:
+https://drive.google.com/uc?export=download&id=1QdaS14KkO_Z6uYKQ8Bp9ZwIXBzafmcFR
 
 ### **Model Download Sources**
 
@@ -119,7 +121,7 @@ adb push model_int8.tflite /data/local/tmp/model_int8.tflite
 - **File needed**: `whisper-small.tflite` (convert from PyTorch to TFLite), or download directly from https://huggingface.co/DocWolle/whisper_tflite_models 
 
 #### **2. Gemma 3n Model (Multimodal LLM)**
-- **Primary**: [Kaggle - Gemma Models](https://www.kaggle.com/models/google/gemma)
+- **Primary**: [Kaggle - Gemma Models](https://huggingface.co/google/gemma-3n-E4B-it)
 - **Alternative**: [AI Edge - Gemma](https://ai.google.dev/edge/models/gemma)
 - **File needed**: `gemma-3n-E4B-it-int4.task` (4-bit quantized for mobile)
 
