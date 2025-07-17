@@ -98,3 +98,106 @@ Route all outgoing messages through the strongest peer node to extend mesh range
 If the patient is shivering after immersion, remove wet clothes and cover with dry layers immediately.
 <chunk_splitter>
 A whistle blast every 10 seconds helps rescuers triangulate your position in collapsed buildings.
+<chunk_splitter>
+Roll an unconscious casualty on their side only if you have ruled out spinal injury.
+<chunk_splitter>
+For eye contamination with sand, flush gently with clean water; do not rub the eye.
+<chunk_splitter>
+Immobilize a snake-bitten limb below heart level and keep the patient calm to slow venom spread.
+<chunk_splitter>
+When applying a tourniquet, record the time visibly on the patient’s forehead or exposed limb.
+<chunk_splitter>
+Remove tight jewelry from a swollen burn area before tissue expansion makes it impossible.
+<chunk_splitter>
+Use the two-person “chair carry” to move a conscious patient through narrow rubble corridors.
+<chunk_splitter>
+If dehydration causes muscle cramps, give an oral rehydration drink and gently stretch the muscle.
+<chunk_splitter>
+Treat mild hypothermia in desert nights by wrapping the patient with shared body heat (“huddle method”).
+<chunk_splitter>
+A sucking chest wound should be covered with plastic taped on three sides to create a flutter valve.
+<chunk_splitter>
+Check capillary refill on the sternum of infants; >3 s indicates poor circulation.
+<chunk_splitter>
+Never apply ice directly to frostbitten tissue; rewarm gradually in 37 °C water.
+<chunk_splitter>
+Use a SAM splint or rolled magazines to stabilize forearm fractures when proper gear is missing.
+<chunk_splitter>
+If the casualty vomits during CPR, roll them to the side, clear the airway, and resume compressions.
+<chunk_splitter>
+For scorpion stings, clean with soap, apply a cool pack 10 min on/10 min off, and monitor for numbness.
+<chunk_splitter>
+Inhalation burns: look for singed nasal hairs and hoarse voice; prepare for rapid airway swelling.
+<chunk_splitter>
+In Iran, avoid scheduling meetings during daily noon prayers (~12:00-12:30) as many staff step away.
+<chunk_splitter>
+Dress modestly at holy sites: men wear long trousers; women cover hair with a scarf even if foreign.
+<chunk_splitter>
+Offering anything with your left hand is considered disrespectful; use the right or both hands.
+<chunk_splitter>
+Giving a thumbs-up gesture can be offensive in parts of Iran and Iraq—use an open-handed sign instead.
+<chunk_splitter>
+During Muharram’s first ten days, music and public celebrations are subdued; plan events accordingly.
+<chunk_splitter>
+Persian hospitality dictates that a guest declines food or tea once or twice before accepting.
+<chunk_splitter>
+Public display of affection, even hand-holding, may attract fines in conservative Gulf states.
+<chunk_splitter>
+Qashqai nomads migrate seasonally; expect livestock on mountain roads in spring and autumn.
+<chunk_splitter>
+Friday sermons (‘khutbah’) begin shortly after the noon adhan; traffic near mosques intensifies then.
+<chunk_splitter>
+Persian carpets are never walked on with shoes; remove footwear when invited to sit on floor rugs.
+<chunk_splitter>
+Greeting elders with a slight bow of the head shows respect in many rural Iranian communities.
+<chunk_splitter>
+Most pharmacies in Tehran close at 2300; 24-hour shops display a green cross sign.
+<chunk_splitter>
+The Persian calendar is solar; Nowruz (new year) falls around March 21 and marks peak family travel.
+<chunk_splitter>
+During Ashura processions, roads may close without notice—carry alternate evacuation routes.
+<chunk_splitter>
+Local women-only metro carriages exist in major Iranian cities; observe signage to avoid offense.
+
+<chunk_splitter>
+When a sandstorm hits, park vehicles nose-into the wind to prevent shattered rear windows.
+<chunk_splitter>
+Dig a trench on the uphill side of a tent to divert flash-flood runoff during mountain rains.
+<chunk_splitter>
+Store water in clay “zeer” pots; evaporative cooling keeps contents 3-5 °C lower than ambient.
+<chunk_splitter>
+Add 10 g of crushed Moringa seeds per liter; stir 5 min then let sit 30 min to coagulate turbidity.
+<chunk_splitter>
+Iodine tincture: 8 drops per L of clear water, stand 30 min; double dose for cloudy water.
+<chunk_splitter>
+UV pens fail below 0 °C; keep them inside clothing in desert winters to preserve battery and lamp.
+<chunk_splitter>
+Use a mylar blanket as a solar still cover; expect 500 mL of distilled water per day in full sun.
+<chunk_splitter>
+Mark GPS waypoints of every functional well; diesel pumps often fail after quakes, but buckets still work.
+<chunk_splitter>
+Summary maps taped to the inside of vehicle roofs survive better than dashboard mounts in heat.
+<chunk_splitter>
+When crossing wadis, assign a lookout upstream—flash floods travel faster than running speed.
+<chunk_splitter>
+Signal aerial drones with an X-shape in brightly colored tarps; drones read symbols better than text.
+<chunk_splitter>
+Cave shelters retain 15-20 °C year-round in Zagros limestone; avoid those with fresh bat guano.
+<chunk_splitter>
+For cooking, a “rocket stove” made from an oil can and sand burns 50 % less wood than an open fire.
+<chunk_splitter>
+Carry 50 m of 7 mm static rope; it doubles as a safety line in collapsed stairwells and for hauling gear.
+<chunk_splitter>
+Desalinating seawater needs ~700 Wh per liter; prioritize rain catchment over improvised distillers.
+<chunk_splitter>
+If sulfur smells emanate from cracks after a quake, you may be near a ruptured natural-gas line—evacuate.
+<chunk_splitter>
+Anchor mesh-network repeaters at least 2 m above ground in urban canyons to bypass concrete walls.
+<chunk_splitter>
+Camels can carry 100 kg but walk only 4 km/h fully loaded; plan convoy timing before midday heat.
+<chunk_splitter>
+Set your device’s screen to greyscale and 30 % brightness to extend lithium battery life by 20 %.
+<chunk_splitter>
+Night desert patrols should follow dunes’ leeward slopes to avoid silhouetting against the horizon.
+<chunk_splitter>
+Keep chlorine dioxide tablets in double zip-locks; humidity degrades them within three weeks once opened.
