@@ -95,7 +95,7 @@ A comprehensive Android application demonstrating **Retrieval-Augmented Generati
 
 **Required Files Summary:**
 - `whisper-small.tflite` (~242 MB) - Speech-to-text model
-- `gemma-3n-E4B-it-int4.task` (~2.3 GB) - Multimodal language model 
+- `gemma-3n-E4B-it-int4.task` (~4.4 GB) - Multimodal language model 
 - `vocab.txt` (~996 kB) - Multilingual embedder vocabulary
 - `model_int8.tflite` (~134 MB) - Multilingual embedder model
 
@@ -121,7 +121,7 @@ https://drive.google.com/uc?export=download&id=1QdaS14KkO_Z6uYKQ8Bp9ZwIXBzafmcFR
 - **File needed**: `whisper-small.tflite` (convert from PyTorch to TFLite), or download directly from https://huggingface.co/DocWolle/whisper_tflite_models 
 
 #### **2. Gemma 3n Model (Multimodal LLM)**
-- **Primary**: [Kaggle - Gemma Models](https://huggingface.co/google/gemma-3n-E4B-it)
+- **Primary**: [Kaggle - Gemma Models](https://www.kaggle.com/models/google/gemma-3n/tfLite)
 - **Alternative**: [AI Edge - Gemma](https://ai.google.dev/edge/models/gemma)
 - **File needed**: `gemma-3n-E4B-it-int4.task` (4-bit quantized for mobile)
 
